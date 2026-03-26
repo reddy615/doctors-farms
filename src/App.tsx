@@ -9,6 +9,7 @@ import Dining from "./pages/Dining";
 import Gallery from "./pages/Gallery";
 import Contact from "./pages/Contact";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import Admin from "./pages/Admin";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/dining" element={<Dining />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
         </Routes>
       </main>

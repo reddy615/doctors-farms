@@ -9,6 +9,7 @@ const navItems = [
   { label: "Dining", to: "/dining" },
   { label: "Gallery", to: "/gallery" },
   { label: "Contact", to: "/contact" },
+  { label: "Admin", to: "/admin" },
 ];
 
 export default function Navbar() {

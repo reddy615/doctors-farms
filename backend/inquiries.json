@@ -1,0 +1,12 @@
+[
+  {
+    "id": "INQ_1774513145001_58563",
+    "name": "Test",
+    "email": "test@example.com",
+    "stay": "2 nights",
+    "message": "hello",
+    "status": "unpaid",
+    "createdAt": "2026-03-26T08:19:05.001Z",
+    "payment": null
+  }
+]

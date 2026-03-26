@@ -6,7 +6,7 @@ const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: stri
   const handlePayment = async () => {
     setProcessing(true);
     try {
-      const response = await fetch('/api/create-payment', {
+      const response = await fetch('http://localhost:5001/api/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -60,7 +60,7 @@ export default function Contact() {
     setMailError('');
 
     try {
-      const response = await fetch('/api/send-mail', {
+      const response = await fetch('http://localhost:5001/api/send-mail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
