@@ -53,11 +53,17 @@ A nature-focused resort website built with **Vite + React + TypeScript** and sty
 
 ## Environment Variables
 
-Set these for PhonePe integration:
+Set these for PhonePe and mail integration:
 
-- `PHONEPE_MERCHANT_ID` — Your PhonePe merchant ID
-- `PHONEPE_SALT_KEY` — Your PhonePe salt key
-- `PHONEPE_BASE_URL` — PhonePe API URL (use sandbox for testing)
+- `MERCHANT_ID` — Your PhonePe merchant ID
+- `SALT_KEY` — Your PhonePe salt key
+- `SALT_INDEX` — Usually `1`
+- `SMTP_HOST` — SMTP mail host (e.g. smtp.gmail.com)
+- `SMTP_PORT` — SMTP port (e.g. 587)
+- `SMTP_SECURE` — `true` for TLS, `false` for STARTTLS
+- `SMTP_USER` — SMTP username/email
+- `SMTP_PASS` — SMTP password/app password
+- `CONTACT_EMAIL` — Destination inbox for booking inquiries
 
 ## Public Deployment
 

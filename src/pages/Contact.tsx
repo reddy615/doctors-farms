@@ -45,14 +45,38 @@ const PaymentForm = () => {
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "", stay: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [mailError, setMailError] = useState('');
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmitted(true);
+    setMailStatus('sending');
+    setMailError('');
+
+    try {
+      const response = await fetch('/api/send-mail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Unable to send inquiry.');
+      }
+
+      setMailStatus('sent');
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Mail send error:', error);
+      setMailStatus('error');
+      setMailError(error instanceof Error ? error.message : 'Unexpected error');
+    }
   };
 
   return (
@@ -104,6 +128,16 @@ export default function Contact() {
             <p className="mt-2 text-sm text-slate-600">
               Share a few details and we'll be in touch about availability and packages.
             </p>
+            {mailStatus === 'sending' && (
+              <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                Sending inquiry...
+              </div>
+            )}
+            {mailStatus === 'error' && (
+              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                Failed to send inquiry: {mailError}
+              </div>
+            )}
             {submitted ? (
               <div className="mt-6 space-y-6">
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-sm text-green-900">

@@ -2,16 +2,78 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const axios = require('axios');
+const nodemailer = require('nodemailer');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Email configuration
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'doctorsfarms686@gmail.com';
+
+let transporter;
+if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+  transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+} else {
+  console.warn('SMTP configuration not found in environment variables. Mail feature is disabled.');
+}
 
 // PhonePe configuration (replace with your actual credentials)
 const MERCHANT_ID = 'YOUR_MERCHANT_ID';
 const SALT_KEY = 'YOUR_SALT_KEY';
 const SALT_INDEX = 1;
 const PHONEPE_BASE_URL = 'https://api.phonepe.com/apis/hermes'; // Use sandbox for testing
+
+// Send mail route for contact form notifications
+app.post('/api/send-mail', async (req, res) => {
+  if (!transporter) {
+    console.warn('Attempted email send without SMTP setup.');
+    return res.status(500).json({ success: false, error: 'Mail service is not configured.' });
+  }
+
+  const { name, email, stay, message } = req.body;
+  if (!name || !email || !message) {
+    return res.status(400).json({ success: false, error: 'Name, email and message are required.' });
+  }
+
+  const mailData = {
+    from: `${name} <${email}>`,
+    to: CONTACT_EMAIL,
+    subject: `New booking inquiry from ${name}`,
+    text: `Name: ${name}\nEmail: ${email}\nPreferred stay: ${stay || 'N/A'}\n\nMessage:\n${message}`,
+    html: `
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Preferred stay:</strong> ${stay || 'N/A'}</p>
+      <p><strong>Message:</strong></p>
+      <p>${message.replace(/\n/g, '<br/>')}</p>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailData);
+    return res.json({ success: true, message: 'Inquiry sent.' });
+  } catch (error) {
+    console.error('Mail send failed:', error);
+    return res.status(500).json({ success: false, error: 'Failed to send inquiry email.' });
+  }
+});
 
 // Generate SHA256 hash for PhonePe
 function generateHash(data) {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 
 const navItems = [
@@ -11,6 +12,8 @@ const navItems = [
 ];
 
 export default function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
@@ -49,8 +52,14 @@ export default function Navbar() {
           </a>
           <button
             type="button"
-            className="md:hidden rounded-full p-2 text-slate-600 hover:bg-slate-100"
+            className={`md:hidden rounded-full p-2 text-slate-600 hover:bg-slate-100 transition-colors ${
+              isMenuOpen ? 'bg-slate-100' : ''
+            }`}
             aria-label="Open menu"
+            onClick={() => {
+              console.log('Menu button clicked, toggling from', isMenuOpen, 'to', !isMenuOpen);
+              setIsMenuOpen(!isMenuOpen);
+            }}
           >
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <path
@@ -64,6 +73,30 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+
+      {isMenuOpen && (
+        <div className="md:hidden bg-white border-t border-slate-200 shadow-lg">
+          <nav className="flex flex-col gap-2 p-4 max-h-96 overflow-y-auto">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive ? "bg-brand-50 text-brand-700" : "text-slate-700 hover:bg-slate-100"
+                  }`
+                }
+                onClick={() => {
+                  console.log('Navigating to', item.to, 'and closing menu');
+                  setIsMenuOpen(false);
+                }}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
