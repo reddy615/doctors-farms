@@ -66,7 +66,14 @@ export default function Contact() {
         body: JSON.stringify(form),
       });
 
-      const result = await response.json();
+      const text = await response.text();
+      let result: any;
+      try {
+        result = text ? JSON.parse(text) : {};
+      } catch (parseError) {
+        console.error('Error parsing JSON:', parseError, 'raw response:', text);
+        throw new Error('Invalid response from server');
+      }
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Unable to send inquiry.');
