@@ -44,6 +44,10 @@ const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'doctorsfarms686@gmail.com';
 
+// ADMIN_LIST can be comma-separated values, e.g. ADMIN_LIST=admin1@example.com,admin2@example.com
+const ADMIN_LIST = process.env.ADMIN_LIST || CONTACT_EMAIL;
+const ADMIN_EMAILS = ADMIN_LIST.split(',').map((item) => item.trim()).filter(Boolean);
+
 let transporter;
 if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
   transporter = nodemailer.createTransport({
@@ -55,8 +59,22 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
       pass: SMTP_PASS,
     },
   });
+
+  // Verify transporter configuration
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('❌ SMTP transporter verification failed:', error);
+    } else {
+      console.log('✅ SMTP transporter verified successfully');
+    }
+  });
+
+  console.log('✅ SMTP transporter configured for:', SMTP_USER);
 } else {
-  console.warn('SMTP configuration not found in environment variables. Mail feature is disabled.');
+  console.warn('⚠️  SMTP configuration incomplete:');
+  console.warn('   SMTP_HOST:', SMTP_HOST ? '✓' : '✗');
+  console.warn('   SMTP_USER:', SMTP_USER ? '✓' : '✗');
+  console.warn('   SMTP_PASS:', SMTP_PASS ? '✓ (hidden)' : '✗');
 }
 
 // PhonePe configuration (replace with your actual credentials)
@@ -95,6 +113,7 @@ app.post('/api/send-mail', async (req, res) => {
   const mailData = {
     from: `${name} <${email}>`,
     to: CONTACT_EMAIL,
+    bcc: ADMIN_EMAILS,
     subject: `New booking inquiry from ${name}`,
     text: `Name: ${name}\nEmail: ${email}\nPreferred stay: ${stay || 'N/A'}\n\nMessage:\n${message}`,
     html: `
@@ -104,6 +123,7 @@ app.post('/api/send-mail', async (req, res) => {
       <p><strong>Message:</strong></p>
       <p>${message.replace(/\n/g, '<br/>')}</p>
       <p><strong>Inquiry ID:</strong> ${inquiry.id}</p>
+      <p><strong>Admin Recipients:</strong> ${ADMIN_EMAILS.join(', ')}</p>
     `,
   };
 
@@ -112,22 +132,49 @@ app.post('/api/send-mail', async (req, res) => {
     return res.status(500).json({ success: false, error: 'Mail service is not configured. Please configure SMTP credentials.' });
   }
 
+  const adminMail = mailData;
+  const userMail = {
+    from: `"Doctors Farms" <${SMTP_USER}>`,
+    to: email,
+    subject: `Your booking inquiry ${inquiry.id} received`,
+    text: `Hi ${name},\n\nThanks for your inquiry. We received your request and will get back shortly.\n\nInquiry ID: ${inquiry.id}\nStay: ${inquiry.stay}\nMessage:\n${inquiry.message}\n\nRegards,\nDoctors Farms`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height:1.6;">
+        <h2>Booking Inquiry Received</h2>
+        <p>Hi ${name},</p>
+        <p>Thank you for reaching out. Your inquiry has been received and we will contact you soon.</p>
+        <p><strong>Inquiry ID:</strong> ${inquiry.id}</p>
+        <p><strong>Stay:</strong> ${inquiry.stay}</p>
+        <p><strong>Message:</strong><br>${inquiry.message.replace(/\n/g, '<br>')}</p>
+        <p>Best regards,<br>Doctors Farms Team</p>
+      </div>
+    `,
+  };
+
   try {
-    await transporter.sendMail(mailData);
+    console.log('Attempting to send admin email...');
+    const adminInfo = await transporter.sendMail(adminMail);
+    console.log('Admin email sent successfully:', adminInfo.messageId);
+
+    console.log('Attempting to send user email...');
+    const userInfo = await transporter.sendMail(userMail);
+    console.log('User email sent successfully:', userInfo.messageId);
+
     return res.json({
       success: true,
-      message: 'Inquiry saved and email sent.',
+      message: 'Inquiry saved and emails sent.',
       inquiryId: inquiry.id,
+      adminMessageId: adminInfo.messageId,
+      userMessageId: userInfo.messageId,
     });
   } catch (error) {
     console.error('Mail send failed:', error);
     return res.status(500).json({
       success: false,
       error: 'Email send failed. Check SMTP credentials and app password.',
-      details: error instanceof Error ? error.message : String(error)
+      details: error instanceof Error ? error.message : String(error),
     });
   }
-});
 });
 
 // Inquiries read/write routes
@@ -138,6 +185,16 @@ app.get('/api/inquiries', (req, res) => {
     inquiries = inquiries.filter((inq) => inq.status === status);
   }
   res.json({ success: true, inquiries });
+});
+
+app.get('/api/admins', (req, res) => {
+  const admins = ADMIN_EMAILS.map((email, index) => ({
+    id: `admin_${index + 1}`,
+    name: email.split('@')[0],
+    email,
+  }));
+
+  res.json({ success: true, admins });
 });
 
 app.get('/api/inquiries/:id', (req, res) => {
@@ -242,6 +299,6 @@ app.post('/api/payment-callback', (req, res) => {
   res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
 });
 
-app.listen(3000, () => {
-  console.log('Backend server running on port 3000');
+app.listen(5001, () => {
+  console.log('✅ Backend server running on port 5001');
 });
