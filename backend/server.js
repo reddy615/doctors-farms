@@ -4,12 +4,37 @@ const crypto = require('crypto');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const INQUIRIES_FILE = path.join(__dirname, 'inquiries.json');
+
+function readInquiries() {
+  try {
+    if (!fs.existsSync(INQUIRIES_FILE)) {
+      fs.writeFileSync(INQUIRIES_FILE, '[]', 'utf-8');
+    }
+    const data = fs.readFileSync(INQUIRIES_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error('Error reading inquiries file:', err);
+    return [];
+  }
+}
+
+function writeInquiries(inquiries) {
+  try {
+    fs.writeFileSync(INQUIRIES_FILE, JSON.stringify(inquiries, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing inquiries file:', err);
+  }
+}
 
 // Email configuration
 const SMTP_HOST = process.env.SMTP_HOST;
@@ -52,6 +77,21 @@ app.post('/api/send-mail', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Name, email and message are required.' });
   }
 
+  const inquiry = {
+    id: `INQ_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+    name,
+    email,
+    stay: stay || 'N/A',
+    message,
+    status: 'unpaid',
+    createdAt: new Date().toISOString(),
+    payment: null,
+  };
+
+  const inquiries = readInquiries();
+  inquiries.push(inquiry);
+  writeInquiries(inquiries);
+
   const mailData = {
     from: `${name} <${email}>`,
     to: CONTACT_EMAIL,
@@ -63,16 +103,44 @@ app.post('/api/send-mail', async (req, res) => {
       <p><strong>Preferred stay:</strong> ${stay || 'N/A'}</p>
       <p><strong>Message:</strong></p>
       <p>${message.replace(/\n/g, '<br/>')}</p>
+      <p><strong>Inquiry ID:</strong> ${inquiry.id}</p>
     `,
   };
 
-  try {
-    await transporter.sendMail(mailData);
-    return res.json({ success: true, message: 'Inquiry sent.' });
-  } catch (error) {
-    console.error('Mail send failed:', error);
-    return res.status(500).json({ success: false, error: 'Failed to send inquiry email.' });
+  let mailSent = false;
+  if (transporter) {
+    try {
+      await transporter.sendMail(mailData);
+      mailSent = true;
+    } catch (error) {
+      console.error('Mail send failed:', error);
+    }
+  } else {
+    console.warn('No transporter configured, skipping email send (inquiry stored).');
   }
+
+  return res.json({
+    success: true,
+    message: 'Inquiry saved.' + (mailSent ? ' Email sent.' : ' Email not sent.'),
+    inquiryId: inquiry.id,
+  });
+});
+
+// Inquiries read/write routes
+app.get('/api/inquiries', (req, res) => {
+  const status = req.query.status;
+  let inquiries = readInquiries();
+  if (status) {
+    inquiries = inquiries.filter((inq) => inq.status === status);
+  }
+  res.json({ success: true, inquiries });
+});
+
+app.get('/api/inquiries/:id', (req, res) => {
+  const inquiries = readInquiries();
+  const inquiry = inquiries.find((inq) => inq.id === req.params.id);
+  if (!inquiry) return res.status(404).json({ success: false, error: 'Inquiry not found' });
+  res.json({ success: true, inquiry });
 });
 
 // Generate SHA256 hash for PhonePe
@@ -83,11 +151,27 @@ function generateHash(data) {
 
 // Create payment request
 app.post('/api/create-payment', async (req, res) => {
-  const { amount, name, email } = req.body;
+  const { amount, name, email, inquiryId } = req.body;
+
+  const inquiries = readInquiries();
+  const inquiry = inquiryId ? inquiries.find((i) => i.id === inquiryId) : null;
+
+  const merchantTransactionId = 'TXN_' + Date.now();
+
+  if (inquiry) {
+    inquiry.payment = {
+      status: 'initiated',
+      merchantTransactionId,
+      amount,
+      updatedAt: new Date().toISOString(),
+    };
+    inquiry.status = 'payment_initiated';
+    writeInquiries(inquiries);
+  }
 
   const payload = {
     merchantId: MERCHANT_ID,
-    merchantTransactionId: 'TXN_' + Date.now(),
+    merchantTransactionId,
     merchantUserId: 'USER_' + Date.now(),
     amount: amount * 100, // Amount in paisa
     redirectUrl: 'http://localhost:5174/payment-success',
@@ -124,9 +208,34 @@ app.post('/api/create-payment', async (req, res) => {
 
 // Payment callback handler
 app.post('/api/payment-callback', (req, res) => {
-  // Verify the callback and update order status
   console.log('Payment callback received:', req.body);
-  res.send('OK');
+
+  const callbackData = req.body;
+  const transactionId = callbackData.merchantTransactionId || callbackData.paymentId;
+
+  if (!transactionId) {
+    return res.status(400).json({ success: false, error: 'Missing transaction identifier' });
+  }
+
+  const inquiries = readInquiries();
+  const inquiry = inquiries.find((inq) => inq.payment?.merchantTransactionId === transactionId);
+
+  if (!inquiry) {
+    console.warn('Callback for unknown transaction', transactionId);
+    return res.status(404).json({ success: false, error: 'Inquiry not found for transaction' });
+  }
+
+  inquiry.status = 'paid';
+  inquiry.payment = {
+    ...inquiry.payment,
+    status: 'paid',
+    callback: callbackData,
+    updatedAt: new Date().toISOString(),
+  };
+
+  writeInquiries(inquiries);
+
+  res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
 });
 
 app.listen(3000, () => {

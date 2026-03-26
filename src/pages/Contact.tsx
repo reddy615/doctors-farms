@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const PaymentForm = () => {
+const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: string; email: string }) => {
   const [processing, setProcessing] = useState(false);
 
   const handlePayment = async () => {
@@ -11,8 +11,9 @@ const PaymentForm = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: 20000, // ₹20,000
-          name: 'Guest',
-          email: 'guest@example.com'
+          name,
+          email,
+          inquiryId,
         })
       });
 
@@ -45,6 +46,7 @@ const PaymentForm = () => {
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "", stay: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [inquiryId, setInquiryId] = useState('');
   const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [mailError, setMailError] = useState('');
 
@@ -71,6 +73,7 @@ export default function Contact() {
       }
 
       setMailStatus('sent');
+      setInquiryId(result.inquiryId || '');
       setSubmitted(true);
     } catch (error) {
       console.error('Mail send error:', error);
@@ -143,7 +146,7 @@ export default function Contact() {
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-sm text-green-900">
                   Thanks for reaching out! Please complete your payment to confirm the booking.
                 </div>
-                <PaymentForm />
+                <PaymentForm inquiryId={inquiryId} name={form.name} email={form.email} />
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="mt-6 space-y-5">
