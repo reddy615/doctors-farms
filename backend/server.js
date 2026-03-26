@@ -107,23 +107,27 @@ app.post('/api/send-mail', async (req, res) => {
     `,
   };
 
-  let mailSent = false;
-  if (transporter) {
-    try {
-      await transporter.sendMail(mailData);
-      mailSent = true;
-    } catch (error) {
-      console.error('Mail send failed:', error);
-    }
-  } else {
-    console.warn('No transporter configured, skipping email send (inquiry stored).');
+  if (!transporter) {
+    console.warn('No transporter configured, inquiry stored but mail is disabled.');
+    return res.status(500).json({ success: false, error: 'Mail service is not configured. Please configure SMTP credentials.' });
   }
 
-  return res.json({
-    success: true,
-    message: 'Inquiry saved.' + (mailSent ? ' Email sent.' : ' Email not sent.'),
-    inquiryId: inquiry.id,
-  });
+  try {
+    await transporter.sendMail(mailData);
+    return res.json({
+      success: true,
+      message: 'Inquiry saved and email sent.',
+      inquiryId: inquiry.id,
+    });
+  } catch (error) {
+    console.error('Mail send failed:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Email send failed. Check SMTP credentials and app password.',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
 });
 
 // Inquiries read/write routes
