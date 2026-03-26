@@ -299,6 +299,6 @@ app.post('/api/payment-callback', (req, res) => {
   res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
 });
 
-app.listen(5001, () => {
-  console.log('✅ Backend server running on port 5001');
+app.listen(5002, () => {
+  console.log('✅ Backend server running on port 5002');
 });
