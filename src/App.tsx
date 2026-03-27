@@ -13,6 +13,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Admin from "./pages/Admin";
 
 export default function App() {
+  console.log('App component rendered');
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -30,7 +31,9 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
+      {console.log('About to render WhatsAppButton')}
       <WhatsAppButton />
+      {console.log('WhatsAppButton rendered')}
     </div>
   );
 }
