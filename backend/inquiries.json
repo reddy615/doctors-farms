@@ -8,5 +8,15 @@
     "status": "unpaid",
     "createdAt": "2026-03-26T08:19:05.001Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1774547427355_85712",
+    "name": "Test User",
+    "email": "test@example.com",
+    "stay": "3 nights",
+    "message": "Test message",
+    "status": "unpaid",
+    "createdAt": "2026-03-26T17:50:27.357Z",
+    "payment": null
   }
 ]

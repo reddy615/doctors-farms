@@ -58,7 +58,17 @@ export default function Footer() {
           <div>
             <div className="mb-2 text-sm font-semibold text-white">Contact</div>
             <p className="text-sm text-slate-300">Phone: +91 99555 75969</p>
-            <p className="text-sm text-slate-300">Email: hello@doctorsfarms.in</p>
+            <p className="text-sm text-slate-300">
+              <a
+                href="https://wa.me/919955575969?text=Hello%20Doctors%20Farms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-green-400"
+              >
+                WhatsApp: +91 99555 75969
+              </a>
+            </p>
+            <p className="text-sm text-slate-300">Email: doctorsfarms686@gmail.com</p>
             <p className="text-sm text-slate-300">Location: Near Greenfield Valley, India</p>
           </div>
         </div>

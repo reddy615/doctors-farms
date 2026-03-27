@@ -90,7 +90,7 @@ app.post('/api/send-mail', async (req, res) => {
     return res.status(500).json({ success: false, error: 'Mail service is not configured.' });
   }
 
-  const { name, email, stay, message } = req.body;
+  const { name, email, phone, stay, message } = req.body;
   if (!name || !email || !message) {
     return res.status(400).json({ success: false, error: 'Name, email and message are required.' });
   }
@@ -99,6 +99,7 @@ app.post('/api/send-mail', async (req, res) => {
     id: `INQ_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
     name,
     email,
+    phone: phone || '',
     stay: stay || 'N/A',
     message,
     status: 'unpaid',
@@ -160,20 +161,26 @@ app.post('/api/send-mail', async (req, res) => {
     const userInfo = await transporter.sendMail(userMail);
     console.log('User email sent successfully:', userInfo.messageId);
 
-    return res.json({
+    console.log('Sending success response...');
+    const responseData = {
       success: true,
       message: 'Inquiry saved and emails sent.',
       inquiryId: inquiry.id,
       adminMessageId: adminInfo.messageId,
       userMessageId: userInfo.messageId,
-    });
+    };
+    console.log('Response data:', responseData);
+    return res.json(responseData);
   } catch (error) {
     console.error('Mail send failed:', error);
-    return res.status(500).json({
+    console.log('Sending error response...');
+    const errorResponse = {
       success: false,
       error: 'Email send failed. Check SMTP credentials and app password.',
       details: error instanceof Error ? error.message : String(error),
-    });
+    };
+    console.log('Error response:', errorResponse);
+    return res.status(500).json(errorResponse);
   }
 });
 
@@ -299,6 +306,6 @@ app.post('/api/payment-callback', (req, res) => {
   res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
 });
 
-app.listen(5002, () => {
-  console.log('✅ Backend server running on port 5002');
+app.listen(5003, () => {
+  console.log('✅ Backend server running on port 5003');
 });
