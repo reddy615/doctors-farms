@@ -31,9 +31,7 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
-      {console.log('About to render WhatsAppButton')}
       <WhatsAppButton />
-      {console.log('WhatsAppButton rendered')}
     </div>
   );
 }
