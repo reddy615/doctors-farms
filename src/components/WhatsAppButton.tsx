@@ -21,7 +21,7 @@ const WhatsAppButton: React.FC = () => {
       WHATSAPP BUTTON TEST - VISIBLE?
       <br />
       <a
-        href="https://wa.me/919955575969"
+        href="https://wa.me/+919955575969"
         style={{ color: 'yellow', textDecoration: 'underline' }}
         target="_blank"
         rel="noopener noreferrer"
