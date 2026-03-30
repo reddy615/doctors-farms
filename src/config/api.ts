@@ -1,54 +1,55 @@
 /**
  * API Configuration
  * 
- * Determines the correct API base URL with priority:
- * 1. Environment variable VITE_API_URL (production deployment)
- * 2. Window origin (same domain as frontend)
- * 3. Fallback to localhost:5003 (local development)
+ * CRITICAL: Always uses VITE_API_URL environment variable
+ * 
+ * Configuration Priority:
+ * 1. VITE_API_URL env var (REQUIRED for production)
+ * 2. localhost:5003 (development fallback only)
+ * 
+ * ⚠️  Production deployments MUST set VITE_API_URL to backend URL
+ * Example: VITE_API_URL=https://doctors-farms-backend.up.railway.app
  */
 
 export const getApiBaseUrl = (): string => {
-  // First priority: Environment variable (set in .env, .env.production, or deployment)
-  // Use this for deployed backends: https://doctors-farms-backend.up.railway.app
+  // Priority 1: Environment variable (SET THIS IN PRODUCTION)
   const envUrl = import.meta.env.VITE_API_URL;
   
   if (envUrl) {
-    console.log(`[API Config] Using VITE_API_URL: ${envUrl}`);
-    return envUrl.replace(/\/$/, ''); // Remove trailing slash if present
+    const cleanUrl = envUrl.replace(/\/$/, ''); // Remove trailing slash
+    console.log(`✅ [API Config] Using VITE_API_URL: ${cleanUrl}`);
+    return cleanUrl;
   }
 
-  // Second priority: For production builds, use window.location.origin
-  // This works on any domain (localhost, IP address, production domain)
+  // Production mode REQUIRES VITE_API_URL - throw error if missing
   if (import.meta.env.PROD) {
-    console.log(`[API Config] Using window.location.origin: ${window.location.origin}`);
-    return window.location.origin;
+    const errorMsg = 
+      '❌ CRITICAL: VITE_API_URL environment variable is NOT SET in production!\n' +
+      'API calls will fail. Please set VITE_API_URL in:\n' +
+      '- Railway Dashboard → Variables\n' +
+      '- .env.production file\n' +
+      '- Or your deployment platform environment variables\n' +
+      'Example: VITE_API_URL=https://doctors-farms-backend.up.railway.app';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
-  // Third priority: Development fallback
-  // Check if running on custom host/IP, otherwise use standard localhost
-  const host = window.location.hostname;
-  const protocol = window.location.protocol;
-  
-  // If already on a specific host/IP (not plain localhost), use that
-  if (host !== 'localhost' && host !== '127.0.0.1') {
-    const url = `${protocol}//${host}:5003`;
-    console.log(`[API Config] Using auto-detected IP: ${url}`);
-    return url;
-  }
-
-  // Default to localhost:5003 for development
+  // Development fallback ONLY (localhost:5003)
   const localUrl = 'http://localhost:5003';
-  console.log(`[API Config] Using localhost: ${localUrl}`);
+  console.log(`⚠️  [API Config] Development mode: Using localhost fallback: ${localUrl}`);
   return localUrl;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
 
 // Log configuration on load
-console.log('\ud83d\udd13 [API Configuration]');
+console.log('🔧 [API Configuration]');
 console.log(`   Base URL: ${API_BASE_URL}`);
 console.log(`   Environment: ${import.meta.env.MODE}`);
-console.log(`   VITE_API_URL set: ${!!import.meta.env.VITE_API_URL}`);
+console.log(`   VITE_API_URL env var: ${import.meta.env.VITE_API_URL ? '✅ SET' : '❌ NOT SET'}`);
+if (!import.meta.env.VITE_API_URL && import.meta.env.PROD) {
+  console.error('⚠️  WARNING: Production mode without VITE_API_URL will cause API failures!');
+}
 
 // Helper function to construct API endpoints with error handling
 export const getApiEndpoint = (path: string): string => {
