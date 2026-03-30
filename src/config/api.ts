@@ -13,13 +13,14 @@ export const getApiBaseUrl = (): string => {
   const envUrl = import.meta.env.VITE_API_URL;
   
   if (envUrl) {
+    console.log(`[API Config] Using VITE_API_URL: ${envUrl}`);
     return envUrl.replace(/\/$/, ''); // Remove trailing slash if present
   }
 
   // Second priority: For production builds, use window.location.origin
   // This works on any domain (localhost, IP address, production domain)
   if (import.meta.env.PROD) {
-    // In production, API is typically on the same origin
+    console.log(`[API Config] Using window.location.origin: ${window.location.origin}`);
     return window.location.origin;
   }
 
@@ -30,14 +31,24 @@ export const getApiBaseUrl = (): string => {
   
   // If already on a specific host/IP (not plain localhost), use that
   if (host !== 'localhost' && host !== '127.0.0.1') {
-    return `${protocol}//${host}:5003`;
+    const url = `${protocol}//${host}:5003`;
+    console.log(`[API Config] Using auto-detected IP: ${url}`);
+    return url;
   }
 
   // Default to localhost:5003 for development
-  return 'http://localhost:5003';
+  const localUrl = 'http://localhost:5003';
+  console.log(`[API Config] Using localhost: ${localUrl}`);
+  return localUrl;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
+
+// Log configuration on load
+console.log('\ud83d\udd13 [API Configuration]');
+console.log(`   Base URL: ${API_BASE_URL}`);
+console.log(`   Environment: ${import.meta.env.MODE}`);
+console.log(`   VITE_API_URL set: ${!!import.meta.env.VITE_API_URL}`);
 
 // Helper function to construct API endpoints with error handling
 export const getApiEndpoint = (path: string): string => {
@@ -46,36 +57,83 @@ export const getApiEndpoint = (path: string): string => {
 };
 
 /**
- * Fetch wrapper with better error handling
- * Shows "Server not reachable" instead of generic "Failed to fetch"
+ * Fetch wrapper with better error handling and timeout
+ * Shows user-friendly error messages
  */
 export const apiFetch = async (
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
+  timeoutMs: number = 30000
 ): Promise<Response> => {
+  const url = getApiEndpoint(endpoint);
+  const method = options?.method || 'GET';
+  
+  console.log(`[API] ${method} ${url}`);
+
   try {
-    const url = getApiEndpoint(endpoint);
-    console.log(`[API] ${options?.method || 'GET'} ${url}`);
-    
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     const response = await fetch(url, {
       ...options,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
+    clearTimeout(timeoutId);
 
-    return response;
-  } catch (error) {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(`[API Error] ${response.status} ${response.statusText}:`, text);
       throw new Error(
-        `Server not reachable. Please check if the API server is running at ${API_BASE_URL}`
+        `Server returned ${response.status}: ${response.statusText}`
       );
     }
-    throw error;
+
+    console.log(`[API] ✅ ${method} ${url} succeeded`);
+    return response;
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`[API Error] ${method} ${url}:`, error.message);
+
+      // Better error messages
+      if (error.message === 'Failed to fetch') {
+        throw new Error(
+          `Cannot reach server at ${API_BASE_URL}\n\n` +
+          `Possible causes:\n` +
+          `• Backend server is not running\n` +
+          `• Incorrect backend URL: ${API_BASE_URL}\n` +
+          `• Network connectivity issue\n` +
+          `• CORS policy blocking the request\n\n` +
+          `Try:\n` +
+          `1. Check if backend is running\n` +
+          `2. Visit ${API_BASE_URL}/health in your browser\n` +
+          `3. Check browser DevTools > Network tab for CORS errors`
+        );
+      } else if (error.message.includes('AbortError') || error.name === 'AbortError') {
+        throw new Error(
+          `Request timeout after ${timeoutMs}ms\n\n` +
+          `The server at ${API_BASE_URL} took too long to respond.\n` +
+          `Backend may be sleeping or overloaded.`
+        );
+      } else if (error.message.includes('CORS') || error.message.includes('blocked')) {
+        throw new Error(
+          `CORS Error: Browser blocked the request\n\n` +
+          `This usually means:\n` +
+          `• Backend CORS not properly configured\n` +
+          `• Frontend and backend on different origins\n` +
+          `• Check browser console for details\n\n` +
+          `Visit: ${API_BASE_URL}/api/debug/cors`
+        );
+      }
+      
+      throw error;
+    }
+    
+    throw new Error('Unknown error occurred');
   }
 };

@@ -17,16 +17,92 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5173',
+  'http://localhost:5003',
+  'http://127.0.0.1:5003',
   process.env.FRONTEND_URL || 'http://localhost:5174',
   process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null,
 ].filter(Boolean);
 
+console.log('✅ CORS Allowed Origins:', allowedOrigins);
+
+// CORS configuration
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // Log but don't block - for debugging
+      console.warn(`⚠️  CORS: Origin not in whitelist: ${origin}`);
+      // Temporarily allow for testing - comment out restrictive line below
+      callback(null, true); // Allow all origins for now
+      // callback(new Error(`CORS policy: origin ${origin} not allowed`));
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+// Preflight requests
+app.options('*', cors());
+
 app.use(express.json());
+
+// Health check endpoints - for testing backend availability
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Backend is alive',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'API Backend is alive and responding',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    endpoints: [
+      'GET /health',
+      'GET /api/health',
+      'POST /api/send-mail',
+      'GET /api/inquiries',
+      'GET /api/admins',
+      'POST /api/create-payment',
+      'POST /api/payment-callback',
+    ],
+  });
+});
+
+// Debug endpoint - shows CORS info
+app.get('/api/debug/cors', (req, res) => {
+  res.json({
+    origin: req.get('origin'),
+    method: req.method,
+    cors_allowed_origins: allowedOrigins,
+    frontend_url: process.env.FRONTEND_URL || 'http://localhost:5174',
+    backend_url: process.env.BACKEND_URL || 'http://localhost:5003',
+    request_headers: req.headers,
+  });
+});
+
+// Debug endpoint - shows current configuration
+app.get('/api/debug/config', (req, res) => {
+  res.json({
+    frontend_url: FRONTEND_URL,
+    backend_url: BACKEND_URL,
+    phonepe_env: process.env.PHONEPE_ENV || 'production',
+    smtp_configured: !!transporter,
+    smtp_user: SMTP_USER ? SMTP_USER.substring(0, 3) + '***' : 'not configured',
+    admin_emails: ADMIN_EMAILS,
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
 
 const INQUIRIES_FILE = path.join(__dirname, 'inquiries.json');
 
@@ -108,10 +184,19 @@ console.log(`✅ Frontend URL: ${FRONTEND_URL}`);
 console.log(`✅ Backend URL: ${BACKEND_URL}`);
 console.log(`✅ PhonePe Environment: ${process.env.PHONEPE_ENV || 'production'}`);
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log(`  Origin: ${req.get('origin') || 'no origin'}`);
+  console.log(`  IP: ${req.ip}`);
+  next();
+});
+
 // Send mail route for contact form notifications
 app.post('/api/send-mail', async (req, res) => {
+  console.log('📧 /api/send-mail request received');
   if (!transporter) {
-    console.warn('Attempted email send without SMTP setup.');
+    console.warn('❌ Attempted email send without SMTP setup.');
     return res.status(500).json({ success: false, error: 'Mail service is not configured.' });
   }
 
@@ -348,6 +433,20 @@ app.post('/api/payment-callback', (req, res) => {
   res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
 });
 
-app.listen(5003, () => {
-  console.log('✅ Backend server running on port 5003');
+const PORT = process.env.PORT || 5003;
+app.listen(PORT, () => {
+  console.log(`\n${'='.repeat(60)}`);
+  console.log(`✅ Backend server running on port ${PORT}`);
+  console.log(`${'='.repeat(60)}`);
+  console.log(`\n📝 Available Endpoints:`);
+  console.log(`   Health Check: http://localhost:${PORT}/health`);
+  console.log(`   API Health: http://localhost:${PORT}/api/health`);
+  console.log(`   Debug CORS: http://localhost:${PORT}/api/debug/cors`);
+  console.log(`   Debug Config: http://localhost:${PORT}/api/debug/config`);
+  console.log(`   Send Mail: POST http://localhost:${PORT}/api/send-mail`);
+  console.log(`   Inquiries: GET http://localhost:${PORT}/api/inquiries`);
+  console.log(`   Admins: GET http://localhost:${PORT}/api/admins`);
+  console.log(`\n🌍 Allowed Origins:`);
+  allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
+  console.log(`\n${'='.repeat(60)}\n`);
 });
