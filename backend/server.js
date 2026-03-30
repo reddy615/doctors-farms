@@ -51,6 +51,9 @@ app.options('*', cors());
 
 app.use(express.json());
 
+// Serve static files from the React app build directory
+app.use(express.static(path.join(__dirname, '../dist')));
+
 // Health check endpoints - for testing backend availability
 app.get('/health', (req, res) => {
   res.json({ 
@@ -458,6 +461,11 @@ app.post('/api/payment-callback', (req, res) => {
   writeInquiries(inquiries);
 
   res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
+});
+
+// Catch all handler: send back React's index.html file for client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 const PORT = process.env.PORT || 5003;
