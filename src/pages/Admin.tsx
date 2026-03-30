@@ -24,8 +24,8 @@ export default function Admin() {
 
       try {
         const [inquiriesRes, adminsRes] = await Promise.all([
-          fetch('http://localhost:5000/api/inquiries'),
-          fetch('http://localhost:5000/api/admins'),
+          fetch('http://localhost:5003/api/inquiries'),
+          fetch('http://localhost:5003/api/admins'),
         ]);
 
         const inquiriesJson = await inquiriesRes.json().catch(() => null);
