@@ -18,5 +18,54 @@
     "status": "unpaid",
     "createdAt": "2026-03-26T17:50:27.357Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1774848007528_42793",
+    "name": "AKSHAY POLAREDDY",
+    "email": "polareddyakshayreddy@gmail.com",
+    "phone": "+919955575969",
+    "stay": "3 nights",
+    "message": "hi",
+    "status": "payment_initiated",
+    "createdAt": "2026-03-30T05:20:07.528Z",
+    "payment": {
+      "status": "initiated",
+      "merchantTransactionId": "TXN_1774848045643",
+      "amount": 20000,
+      "updatedAt": "2026-03-30T05:20:45.643Z"
+    }
+  },
+  {
+    "id": "INQ_1774848946779_74185",
+    "name": "AKSHAY POLAREDDY",
+    "email": "2300090002@kluniversity.in",
+    "phone": "+919955575969",
+    "stay": "3 nights",
+    "message": "hi",
+    "status": "unpaid",
+    "createdAt": "2026-03-30T05:35:46.779Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1774855840447_5165",
+    "name": "AKSHAY POLAREDDY",
+    "email": "polareddyakshayreddy@gmail.com",
+    "phone": "+919955575969",
+    "stay": "3 nights",
+    "message": "hi",
+    "status": "unpaid",
+    "createdAt": "2026-03-30T07:30:40.447Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1774856042580_64537",
+    "name": "AKSHAY POLAREDDY",
+    "email": "2300090002@kluniversity.in",
+    "phone": "+919955575969",
+    "stay": "3 nights",
+    "message": "hi",
+    "status": "unpaid",
+    "createdAt": "2026-03-30T07:34:02.580Z",
+    "payment": null
   }
 ]

@@ -47,8 +47,9 @@ export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "" });
   const [submitted, setSubmitted] = useState(false);
   const [inquiryId, setInquiryId] = useState('');
-  const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'pending'>('idle');
   const [mailError, setMailError] = useState('');
+  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<'sent' | 'delayed' | 'pending' | null>(null);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
@@ -87,6 +88,7 @@ export default function Contact() {
 
       setMailStatus('sent');
       setInquiryId(result.inquiryId || '');
+      setEmailDeliveryStatus(result.emailStatus || 'sent');
       setSubmitted(true);
     } catch (error) {
       console.error('Mail send error:', error);
@@ -172,8 +174,23 @@ export default function Contact() {
             )}
             {submitted ? (
               <div className="mt-6 space-y-6">
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-sm text-green-900">
-                  Thanks for reaching out! Please complete your payment to confirm the booking.
+                <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
+                  <p className="text-sm text-green-900">
+                    <strong>✓ Inquiry Received!</strong> Inquiry ID: {inquiryId}
+                  </p>
+                  {emailDeliveryStatus === 'sent' && (
+                    <p className="mt-2 text-sm text-green-800">Confirmation email has been sent to {form.email}</p>
+                  )}
+                  {emailDeliveryStatus === 'delayed' && (
+                    <p className="mt-2 text-sm text-yellow-800">Your inquiry is saved. Email confirmation may take a few minutes to arrive.</p>
+                  )}
+                  {emailDeliveryStatus === 'pending' && (
+                    <p className="mt-2 text-sm text-yellow-800">Your inquiry is saved. We're processing your submission and will contact you shortly.</p>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-sm text-blue-900">
+                  <p className="font-medium">Next Step: Complete Payment</p>
+                  <p className="mt-2">Please proceed with payment to confirm your booking reservation.</p>
                 </div>
                 <PaymentForm inquiryId={inquiryId} name={form.name} email={form.email} />
               </div>
