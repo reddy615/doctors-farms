@@ -16,6 +16,12 @@ dist-ssr
 .env
 backend/.env
 
+# Java/Maven build files
+target/
+*.class
+*.jar
+*.war
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
