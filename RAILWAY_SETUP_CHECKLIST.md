@@ -4,9 +4,13 @@
 
 ### STEP 1: Single Combined Project Setup
 
-1. Go to: https://railway.com/project/92076709-fa5f-4e9a-a2c7-0c63bd12cec1/service/c4b3b1ff-b364-472a-93be-12a0e3704886/variables?environmentId=bd058a8b-424c-406c-9bd8-055e32d321cf
-2. Click: **Variables** (you're already there)
-3. Add these variables (copy-paste exactly):
+1. Go to: https://railway.com/project/92076709-fa5f-4e9a-a2c7-0c63bd12cec1/service/c4b3b1ff-b364-472a-93be-12a0e3704886/settings
+2. In the **"Build"** section, set:
+   - **Build Command**: `npm run build && (cd backend && npm install)`
+3. In the **"Deploy"** section, set:
+   - **Start Command**: `node backend/server.js`
+4. Click: **Variables** (in the sidebar)
+5. Add these variables (copy-paste exactly):
 
 ```
 SMTP_HOST
@@ -68,6 +72,8 @@ https://doctors-farms-backend.up.railway.app
 
 ## 📋 Quick Checklist
 
+- [ ] Set Build Command: `npm run build && (cd backend && npm install)`
+- [ ] Set Start Command: `node backend/server.js`
 - [ ] Added all SMTP variables (SMTP_HOST, SMTP_USER, SMTP_PASS)
 - [ ] Set CONTACT_EMAIL & ADMIN_LIST
 - [ ] Set VITE_API_URL
