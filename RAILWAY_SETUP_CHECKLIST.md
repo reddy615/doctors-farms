@@ -1,13 +1,12 @@
-# Railway Environment Variables - Quick Setup Guide
+# Railway Environment Variables - Single Project Setup Guide
 
 ## 🚀 Step-by-Step Instructions
 
-### STEP 1: Backend Project (Email Configuration)
+### STEP 1: Single Combined Project Setup
 
-1. Go to: https://railway.app
-2. Select: **Backend Project** (doctors-farms-backend)
-3. Click: **Variables** (in the sidebar)
-4. Add these variables (copy-paste exactly):
+1. Go to: https://railway.com/project/92076709-fa5f-4e9a-a2c7-0c63bd12cec1/service/c4b3b1ff-b364-472a-93be-12a0e3704886/variables?environmentId=bd058a8b-424c-406c-9bd8-055e32d321cf
+2. Click: **Variables** (you're already there)
+3. Add these variables (copy-paste exactly):
 
 ```
 SMTP_HOST
@@ -36,6 +35,9 @@ https://doctors-farms-backend.up.railway.app
 
 NODE_ENV
 production
+
+VITE_API_URL
+https://doctors-farms-backend.up.railway.app
 ```
 
 ### STEP 2: Get Gmail App Password
@@ -48,28 +50,12 @@ production
 6. Copy: The 16-character password
 7. Paste: As `SMTP_PASS` value in Railway
 
-### STEP 3: Frontend Project (API Configuration)
+### STEP 3: Deploy Your Project
 
-1. Go to: https://railway.app
-2. Select: **Frontend Project** (doctors-farms-production)
-3. Click: **Variables**
-4. Add this variable:
+1. Click: **Deploy** button (top right of your Railway project)
+2. Wait: 2-3 minutes for deployment
 
-```
-VITE_API_URL
-https://doctors-farms-backend.up.railway.app
-```
-
-### STEP 4: Deploy Both Projects
-
-1. Go to: Backend Project
-2. Click: **Deploy** button (top right)
-3. Wait: 2-3 minutes for deployment
-4. Go to: Frontend Project  
-5. Click: **Deploy** button (top right)
-6. Wait: 2-3 minutes for deployment
-
-### STEP 5: Test Production
+### STEP 4: Test Production
 
 1. Visit: https://doctors-farms-production.up.railway.app
 2. Open: F12 (DevTools) → Console
@@ -82,11 +68,10 @@ https://doctors-farms-backend.up.railway.app
 
 ## 📋 Quick Checklist
 
-- [ ] Backend: Added SMTP_HOST, SMTP_USER, SMTP_PASS
-- [ ] Backend: Set CONTACT_EMAIL & ADMIN_LIST
-- [ ] Backend: Clicked Deploy (wait 2-3 min)
-- [ ] Frontend: Added VITE_API_URL
-- [ ] Frontend: Clicked Deploy (wait 2-3 min)
+- [ ] Added all SMTP variables (SMTP_HOST, SMTP_USER, SMTP_PASS)
+- [ ] Set CONTACT_EMAIL & ADMIN_LIST
+- [ ] Set VITE_API_URL
+- [ ] Clicked Deploy (wait 2-3 min)
 - [ ] Tested: Form submission works
 - [ ] Tested: Console shows correct backend URL
 - [ ] Tested: Received email confirmation
@@ -96,19 +81,19 @@ https://doctors-farms-backend.up.railway.app
 ## 🔧 If Something Goes Wrong
 
 **Console shows: "❌ CRITICAL: VITE_API_URL not set"**
-→ Frontend variables not applied
-→ Click Deploy again on Frontend
+→ Variables not applied
+→ Click Deploy again on your Railway project
 
 **Email not sending**
-→ Check SMTP_USER & SMTP_PASS in Backend variables
+→ Check SMTP_USER & SMTP_PASS in your Railway project variables
 → Verify Gmail app password (not regular password)
-→ Check Railway Backend Logs for error
+→ Check Railway logs for error
 
 **API calls show localhost**
 → Hard refresh browser: **Ctrl+Shift+R** (not just Ctrl+R)
 
 **Still failing?**
-→ Check Railway Backend Logs → look for errors
+→ Check Railway logs → look for errors
 → Check `/api/debug/config` endpoint
 → Share exact error message
 
@@ -133,7 +118,7 @@ Once you have App Passwords:
 
 ## ✅ All Variables Reference
 
-**Backend (8 variables):**
+**Single Project (10 variables):**
 - SMTP_HOST=smtp.gmail.com
 - SMTP_PORT=587
 - SMTP_USER=doctorsfarms686@gmail.com
@@ -143,8 +128,6 @@ Once you have App Passwords:
 - FRONTEND_URL=https://doctors-farms-production.up.railway.app
 - BACKEND_URL=https://doctors-farms-backend.up.railway.app
 - NODE_ENV=production
-
-**Frontend (1 variable):**
 - VITE_API_URL=https://doctors-farms-backend.up.railway.app
 
 ---
