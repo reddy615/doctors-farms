@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getApiEndpoint } from "../config/api";
 
 const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: string; email: string }) => {
   const [processing, setProcessing] = useState(false);
@@ -6,7 +7,7 @@ const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: stri
   const handlePayment = async () => {
     setProcessing(true);
     try {
-      const response = await fetch('http://localhost:5003/api/create-payment', {
+      const response = await fetch(getApiEndpoint('/api/create-payment'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -62,7 +63,7 @@ export default function Contact() {
 
     try {
       console.log('Sending form data:', form);
-      const response = await fetch('http://localhost:5003/api/send-mail', {
+      const response = await fetch(getApiEndpoint('/api/send-mail'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

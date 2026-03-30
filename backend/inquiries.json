@@ -67,5 +67,16 @@
     "status": "unpaid",
     "createdAt": "2026-03-30T07:34:02.580Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1774857933775_24616",
+    "name": "AKSHAY POLAREDDY",
+    "email": "2300090002@kluniversity.in",
+    "phone": "+919955575969",
+    "stay": "3 nights",
+    "message": "hi",
+    "status": "unpaid",
+    "createdAt": "2026-03-30T08:05:33.775Z",
+    "payment": null
   }
 ]
