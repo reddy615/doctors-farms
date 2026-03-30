@@ -101,6 +101,23 @@ app.get('/api/debug/config', (req, res) => {
     smtp_user: SMTP_USER ? SMTP_USER.substring(0, 3) + '***' : 'not configured',
     admin_emails: ADMIN_EMAILS,
     environment: process.env.NODE_ENV || 'development',
+    // Enhanced SMTP debugging
+    smtp_debug: {
+      smtp_host: process.env.SMTP_HOST || '❌ NOT SET - check Railway variables',
+      smtp_port: process.env.SMTP_PORT || 'NOT SET (default: 587)',
+      smtp_user: process.env.SMTP_USER ? '✅ SET (hidden)' : '❌ NOT SET',
+      smtp_pass: process.env.SMTP_PASS ? '✅ SET (hidden)' : '❌ NOT SET',
+      smtp_secure: process.env.SMTP_SECURE || 'false (default)',
+      transporter_status: transporter ? '✅ ACTIVE - emails can be sent' : '❌ NOT CONFIGURED - emails will fail',
+      fix_if_failing: 'Add SMTP_HOST, SMTP_USER, SMTP_PASS to Railway Backend variables and redeploy',
+    },
+    // API endpoint status
+    endpoint_status: {
+      health: '✅ available',
+      send_mail: transporter ? '✅ available' : '❌ disabled (no SMTP)',
+      inquiries: '✅ available',
+      create_payment: '✅ available',
+    },
   });
 });
 
@@ -194,10 +211,20 @@ app.use((req, res, next) => {
 
 // Send mail route for contact form notifications
 app.post('/api/send-mail', async (req, res) => {
-  console.log('📧 /api/send-mail request received');
+  console.log('📧 [SEND-MAIL] Request received');
+  console.log('   [DEBUG] Transporter configured:', !!transporter);
+  console.log('   [DEBUG] SMTP_USER env:', process.env.SMTP_USER ? '✓ Set' : '✗ NOT SET');
+  console.log('   [DEBUG] SMTP_PASS env:', process.env.SMTP_PASS ? '✓ Set' : '✗ NOT SET');
+  console.log('   [DEBUG] SMTP_HOST env:', process.env.SMTP_HOST || '✗ NOT SET');
+  console.log('   [DEBUG] Request body fields:', Object.keys(req.body).join(', '));
+  
   if (!transporter) {
-    console.warn('❌ Attempted email send without SMTP setup.');
-    return res.status(500).json({ success: false, error: 'Mail service is not configured.' });
+    console.error('❌ [SEND-MAIL] SMTP transporter NOT configured!');
+    console.error('   Required: SMTP_HOST, SMTP_USER, SMTP_PASS environment variables');
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Mail service is not configured. Please configure SMTP variables.' 
+    });
   }
 
   const { name, email, phone, stay, message } = req.body;
@@ -267,24 +294,24 @@ app.post('/api/send-mail', async (req, res) => {
     let emailSendFailed = false;
     
     try {
-      console.log('Attempting to send admin email...');
+      console.log('   [INFO] Attempting to send admin email to:', ADMIN_EMAILS);
       adminInfo = await transporter.sendMail(adminMail);
-      console.log('Admin email sent successfully:', adminInfo.messageId);
+      console.log('   ✅ [INFO] Admin email sent:', adminInfo.messageId);
     } catch (emailError) {
-      console.error('Admin email send failed:', emailError);
+      console.error('   ❌ [ERROR] Admin email failed:', emailError instanceof Error ? emailError.message : emailError);
       emailSendFailed = true;
     }
 
     try {
-      console.log('Attempting to send user email...');
+      console.log('   [INFO] Attempting to send user email to:', email);
       userInfo = await transporter.sendMail(userMail);
-      console.log('User email sent successfully:', userInfo.messageId);
+      console.log('   ✅ [INFO] User email sent:', userInfo.messageId);
     } catch (emailError) {
-      console.error('User email send failed:', emailError);
+      console.error('   ❌ [ERROR] User email failed:', emailError instanceof Error ? emailError.message : emailError);
       emailSendFailed = true;
     }
 
-    console.log('Sending response...');
+    console.log('   [INFO] Inquiry saved with ID:', inquiry.id);
     const responseData = {
       success: true,
       message: emailSendFailed ? 'Inquiry saved. Email delivery delayed.' : 'Inquiry saved and emails sent.',
@@ -293,12 +320,12 @@ app.post('/api/send-mail', async (req, res) => {
       userMessageId: userInfo?.messageId || null,
       emailStatus: emailSendFailed ? 'delayed' : 'sent',
     };
-    console.log('Response data:', responseData);
+    console.log('   ✅ [SEND-MAIL] Response:', responseData);
     return res.json(responseData);
   } catch (error) {
-    console.error('Inquiry processing failed:', error);
+    console.error('   ❌ [CRITICAL ERROR] Inquiry processing failed:', error instanceof Error ? error.message : error);
     // Even if emails fail, the inquiry is already saved to inquiries.json
-    console.log('Sending fallback success response (inquiry saved)...');
+    console.log('   [INFO] Sending fallback response (inquiry saved)...');
     const fallbackResponse = {
       success: true,
       message: 'Inquiry saved successfully. Email notifications will be sent shortly.',
@@ -306,7 +333,7 @@ app.post('/api/send-mail', async (req, res) => {
       emailStatus: 'pending',
       note: error instanceof Error ? error.message : String(error),
     };
-    console.log('Fallback response:', fallbackResponse);
+    console.log('   ✅ [FALLBACK] Response:', fallbackResponse);
     return res.json(fallbackResponse);
   }
 });
