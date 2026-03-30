@@ -94,7 +94,19 @@ export default function Contact() {
     } catch (error) {
       console.error('Mail send error:', error);
       setMailStatus('error');
-      setMailError(error instanceof Error ? error.message : 'Unexpected error');
+      
+      // Provide user-friendly error messages
+      let errorMsg = 'Unexpected error';
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMsg = 'Server not reachable. Please check your internet or try again later.';
+        } else if (error.message.includes('Invalid response')) {
+          errorMsg = 'Server returned an invalid response.';
+        } else {
+          errorMsg = error.message;
+        }
+      }
+      setMailError(errorMsg);
     }
   };
 

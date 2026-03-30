@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getApiEndpoint } from "../config/api";
 
 type Inquiry = {
   id: string;
@@ -24,8 +25,8 @@ export default function Admin() {
 
       try {
         const [inquiriesRes, adminsRes] = await Promise.all([
-          fetch('http://localhost:5003/api/inquiries'),
-          fetch('http://localhost:5003/api/admins'),
+          fetch(getApiEndpoint('/api/inquiries')),
+          fetch(getApiEndpoint('/api/admins')),
         ]);
 
         const inquiriesJson = await inquiriesRes.json().catch(() => null);
@@ -43,7 +44,16 @@ export default function Admin() {
         setAdmins(adminsJson.admins || []);
       } catch (err) {
         console.error('Failed to load data', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        
+        // Provide user-friendly error messages
+        if (errorMessage.includes('Failed to fetch')) {
+          setError('Server not reachable. Please check if the API server is running.');
+        } else if (errorMessage.includes('Could not load')) {
+          setError(errorMessage);
+        } else {
+          setError('Failed to load admin data. Please try again.');
+        }
       } finally {
         setLoading(false);
       }

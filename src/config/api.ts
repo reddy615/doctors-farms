@@ -1,13 +1,15 @@
 /**
  * API Configuration
  * 
- * This utility determines the correct API base URL depending on the environment:
- * - Development: Uses environment variable or falls back to current origin
- * - Production: Uses environment variable VITE_API_URL
+ * Determines the correct API base URL with priority:
+ * 1. Environment variable VITE_API_URL (production deployment)
+ * 2. Window origin (same domain as frontend)
+ * 3. Fallback to localhost:5003 (local development)
  */
 
 export const getApiBaseUrl = (): string => {
-  // First priority: Environment variable (set in .env or .env.local)
+  // First priority: Environment variable (set in .env, .env.production, or deployment)
+  // Use this for deployed backends: https://doctors-farms-backend.up.railway.app
   const envUrl = import.meta.env.VITE_API_URL;
   
   if (envUrl) {
@@ -37,8 +39,43 @@ export const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
-// Helper function to construct API endpoints
+// Helper function to construct API endpoints with error handling
 export const getApiEndpoint = (path: string): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${cleanPath}`;
+};
+
+/**
+ * Fetch wrapper with better error handling
+ * Shows "Server not reachable" instead of generic "Failed to fetch"
+ */
+export const apiFetch = async (
+  endpoint: string,
+  options?: RequestInit
+): Promise<Response> => {
+  try {
+    const url = getApiEndpoint(endpoint);
+    console.log(`[API] ${options?.method || 'GET'} ${url}`);
+    
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return response;
+  } catch (error) {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error(
+        `Server not reachable. Please check if the API server is running at ${API_BASE_URL}`
+      );
+    }
+    throw error;
+  }
 };

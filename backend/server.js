@@ -10,7 +10,22 @@ const path = require('path');
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// CORS configuration for production deployment
+const allowedOrigins = [
+  'http://localhost:5174',
+  'http://localhost:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5173',
+  process.env.FRONTEND_URL || 'http://localhost:5174',
+  process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null,
+].filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
 app.use(express.json());
 
 const INQUIRIES_FILE = path.join(__dirname, 'inquiries.json');
@@ -77,11 +92,21 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
   console.warn('   SMTP_PASS:', SMTP_PASS ? '✓ (hidden)' : '✗');
 }
 
+// Frontend URLs for redirects (use environment variables for deployment)
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5174';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5003';
+
 // PhonePe configuration (replace with your actual credentials)
-const MERCHANT_ID = 'YOUR_MERCHANT_ID';
-const SALT_KEY = 'YOUR_SALT_KEY';
-const SALT_INDEX = 1;
-const PHONEPE_BASE_URL = 'https://api.phonepe.com/apis/hermes'; // Use sandbox for testing
+const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'YOUR_MERCHANT_ID';
+const SALT_KEY = process.env.PHONEPE_SALT_KEY || 'YOUR_SALT_KEY';
+const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
+const PHONEPE_BASE_URL = process.env.PHONEPE_ENV === 'sandbox' 
+  ? 'https://api-sandbox.phonepe.com/apis/hermes'
+  : 'https://api.phonepe.com/apis/hermes';
+
+console.log(`✅ Frontend URL: ${FRONTEND_URL}`);
+console.log(`✅ Backend URL: ${BACKEND_URL}`);
+console.log(`✅ PhonePe Environment: ${process.env.PHONEPE_ENV || 'production'}`);
 
 // Send mail route for contact form notifications
 app.post('/api/send-mail', async (req, res) => {
@@ -259,9 +284,9 @@ app.post('/api/create-payment', async (req, res) => {
     merchantTransactionId,
     merchantUserId: 'USER_' + Date.now(),
     amount: amount * 100, // Amount in paisa
-    redirectUrl: 'http://localhost:5174/payment-success',
+    redirectUrl: `${FRONTEND_URL}/payment-success`,
     redirectMode: 'REDIRECT',
-    callbackUrl: 'http://localhost:3000/payment-callback',
+    callbackUrl: `${BACKEND_URL}/payment-callback`,
     mobileNumber: '9999999999', // Optional
     paymentInstrument: {
       type: 'PAY_PAGE'
