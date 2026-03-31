@@ -1,16 +1,51 @@
-# Railway Environment Variables - Single Project Setup Guide
+# Railway Environment Variables - Separate Deployments Setup
 
 ## 🚀 Step-by-Step Instructions
 
-### STEP 1: Single Combined Project Setup
+### STEP 1: Deploy Backend Separately
 
-1. Go to: https://railway.com/project/92076709-fa5f-4e9a-a2c7-0c63bd12cec1/service/c4b3b1ff-b364-472a-93be-12a0e3704886/settings
-2. In the **"Build"** section, set:
-   - **Build Command**: `npm run build && (cd backend && npm install)`
-3. In the **"Deploy"** section, set:
-   - **Start Command**: `node backend/server.js`
-4. Click: **Variables** (in the sidebar)
-5. Add these variables (copy-paste exactly):
+1. Go to: https://railway.app
+2. Click: **New Project**
+3. Select: **Deploy from GitHub**
+4. Choose: Your doctors-farms repository
+5. Set: **Root Directory** = `backend`
+6. In **Settings** → **Build**:
+   - **Build Command**: `npm install`
+7. In **Settings** → **Deploy**:
+   - **Start Command**: `node server.js`
+8. In **Variables** tab, add:
+   ```
+   EMAIL_USER
+   doctorsfarms686@gmail.com
+
+   EMAIL_PASS
+   [YOUR GMAIL APP PASSWORD]
+   ```
+9. Click: **Deploy**
+10. Wait for deployment - you'll get a URL like: `https://doctors-farms-backend.up.railway.app`
+
+### STEP 2: Deploy Frontend Separately
+
+1. Go to: https://railway.app
+2. Click: **New Project**
+3. Select: **Deploy from GitHub**
+4. Choose: Your doctors-farms repository
+5. Set: **Root Directory** = (leave empty for root)
+6. In **Variables** tab, add:
+   ```
+   VITE_API_URL
+   https://doctors-farms-backend.up.railway.app
+   ```
+7. Click: **Deploy**
+8. Wait for deployment - you'll get a URL like: `https://doctors-farms-production.up.railway.app`
+
+### STEP 3: Test Production
+
+1. Visit: Your frontend Railway URL
+2. Open: F12 (DevTools) → Console
+3. Look for: `✅ [API Config] Using VITE_API_URL: https://doctors-farms-backend.up.railway.app`
+4. Fill booking form and submit
+5. Should work and send emails!
 
 ```
 SMTP_HOST
@@ -72,12 +107,14 @@ https://doctors-farms-backend.up.railway.app
 
 ## 📋 Quick Checklist
 
-- [ ] Set Build Command: `npm run build && (cd backend && npm install)`
-- [ ] Set Start Command: `node backend/server.js`
-- [ ] Added all SMTP variables (SMTP_HOST, SMTP_USER, SMTP_PASS)
-- [ ] Set CONTACT_EMAIL & ADMIN_LIST
-- [ ] Set VITE_API_URL
-- [ ] Clicked Deploy (wait 2-3 min)
+- [ ] Backend: Created separate Railway project with root directory = backend
+- [ ] Backend: Set Build Command = npm install
+- [ ] Backend: Set Start Command = node server.js
+- [ ] Backend: Added EMAIL_USER and EMAIL_PASS variables
+- [ ] Backend: Deployed successfully (note the URL)
+- [ ] Frontend: Created separate Railway project with root directory = (empty)
+- [ ] Frontend: Added VITE_API_URL pointing to backend URL
+- [ ] Frontend: Deployed successfully
 - [ ] Tested: Form submission works
 - [ ] Tested: Console shows correct backend URL
 - [ ] Tested: Received email confirmation
@@ -87,21 +124,25 @@ https://doctors-farms-backend.up.railway.app
 ## 🔧 If Something Goes Wrong
 
 **Console shows: "❌ CRITICAL: VITE_API_URL not set"**
-→ Variables not applied
-→ Click Deploy again on your Railway project
+→ Frontend variables not applied
+→ Check frontend Railway project variables
 
 **Email not sending**
-→ Check SMTP_USER & SMTP_PASS in your Railway project variables
+→ Check EMAIL_USER & EMAIL_PASS in backend Railway project
 → Verify Gmail app password (not regular password)
-→ Check Railway logs for error
+→ Check backend Railway logs for errors
 
 **API calls show localhost**
 → Hard refresh browser: **Ctrl+Shift+R** (not just Ctrl+R)
 
-**Still failing?**
-→ Check Railway logs → look for errors
-→ Check `/api/debug/config` endpoint
-→ Share exact error message
+**Backend not deploying**
+→ Check backend Railway logs
+→ Ensure root directory is set to "backend"
+→ Verify EMAIL_USER and EMAIL_PASS are set
+
+**Frontend not deploying**
+→ Check frontend Railway logs
+→ Ensure VITE_API_URL points to your backend URL
 
 ---
 
@@ -122,19 +163,14 @@ Once you have App Passwords:
 
 ---
 
-## ✅ All Variables Reference
+## ✅ Variables Reference
 
-**Single Project (10 variables):**
-- SMTP_HOST=smtp.gmail.com
-- SMTP_PORT=587
-- SMTP_USER=doctorsfarms686@gmail.com
-- SMTP_PASS=<app-password>
-- CONTACT_EMAIL=doctorsfarms686@gmail.com
-- ADMIN_LIST=doctorsfarms686@gmail.com
-- FRONTEND_URL=https://doctors-farms-production.up.railway.app
-- BACKEND_URL=https://doctors-farms-backend.up.railway.app
-- NODE_ENV=production
-- VITE_API_URL=https://doctors-farms-backend.up.railway.app
+**Backend Project:**
+- EMAIL_USER=doctorsfarms686@gmail.com
+- EMAIL_PASS=<gmail-app-password>
+
+**Frontend Project:**
+- VITE_API_URL=https://your-backend-railway-url
 
 ---
 

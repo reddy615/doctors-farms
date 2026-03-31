@@ -148,11 +148,11 @@ function writeInquiries(inquiries) {
 }
 
 // Email configuration
-const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_USER = process.env.SMTP_USER || process.env.EMAIL_USER;
+const SMTP_PASS = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'doctorsfarms686@gmail.com';
 
 // ADMIN_LIST can be comma-separated values, e.g. ADMIN_LIST=admin1@example.com,admin2@example.com
@@ -468,7 +468,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-const PORT = process.env.PORT || 5003;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`✅ Backend server running on port ${PORT}`);
