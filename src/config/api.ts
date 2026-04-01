@@ -13,8 +13,8 @@
 
 export const getApiBaseUrl = (): string => {
   // Priority 1: Environment variable (SET THIS IN PRODUCTION)
-  const envUrl = import.meta.env.VITE_API_URL;
-  
+  const envUrl = import.meta.env.VITE_API_URL?.trim();
+
   if (envUrl) {
     const cleanUrl = envUrl.replace(/\/$/, ''); // Remove trailing slash
     console.log(`✅ [API Config] Using VITE_API_URL: ${cleanUrl}`);
@@ -23,7 +23,7 @@ export const getApiBaseUrl = (): string => {
 
   // Production mode REQUIRES VITE_API_URL - throw error if missing
   if (import.meta.env.PROD) {
-    const errorMsg = 
+    const errorMsg =
       '❌ CRITICAL: VITE_API_URL environment variable is NOT SET in production!\n' +
       'API calls will fail. Please set VITE_API_URL in:\n' +
       '- Railway Dashboard → Variables\n' +
@@ -34,9 +34,9 @@ export const getApiBaseUrl = (): string => {
     throw new Error(errorMsg);
   }
 
-  // Development fallback ONLY (localhost:5003)
-  const localUrl = 'http://localhost:5003';
-  console.log(`⚠️  [API Config] Development mode: Using localhost fallback: ${localUrl}`);
+  // Development fallback ONLY (localhost:5000 - backend local)
+  const localUrl = 'http://localhost:5000';
+  console.warn(`⚠️  [API Config] Development mode: VITE_API_URL missing, using fallback: ${localUrl}`);
   return localUrl;
 };
 
