@@ -34,8 +34,8 @@ export const getApiBaseUrl = (): string => {
     throw new Error(errorMsg);
   }
 
-  // Development fallback ONLY (localhost:5000 - backend local)
-  const localUrl = 'http://localhost:5000';
+  // Development fallback to production backend (for testing)
+  const localUrl = 'https://doctors-farms-backend.up.railway.app';
   console.warn(`⚠️  [API Config] Development mode: VITE_API_URL missing, using fallback: ${localUrl}`);
   return localUrl;
 };
