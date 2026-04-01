@@ -12,32 +12,19 @@
  */
 
 export const getApiBaseUrl = (): string => {
-  // Priority 1: Environment variable (SET THIS IN PRODUCTION)
+  // Priority 1: Environment variable (for separate deployments)
   const envUrl = import.meta.env.VITE_API_URL?.trim();
-
+  
   if (envUrl) {
-    const cleanUrl = envUrl.replace(/\/$/, ''); // Remove trailing slash
+    const cleanUrl = envUrl.replace(/\/$/, '');
     console.log(`✅ [API Config] Using VITE_API_URL: ${cleanUrl}`);
     return cleanUrl;
   }
 
-  // Production mode REQUIRES VITE_API_URL - throw error if missing
-  if (import.meta.env.PROD) {
-    const errorMsg =
-      '❌ CRITICAL: VITE_API_URL environment variable is NOT SET in production!\n' +
-      'API calls will fail. Please set VITE_API_URL in:\n' +
-      '- Railway Dashboard → Variables\n' +
-      '- .env.production file\n' +
-      '- Or your deployment platform environment variables\n' +
-      'Example: VITE_API_URL=https://doctors-farms-backend.up.railway.app';
-    console.error(errorMsg);
-    throw new Error(errorMsg);
-  }
-
-  // Development fallback to production backend (for testing)
-  const localUrl = 'https://doctors-farms-backend.up.railway.app';
-  console.warn(`⚠️  [API Config] Development mode: VITE_API_URL missing, using fallback: ${localUrl}`);
-  return localUrl;
+  // Priority 2: Use relative paths (works for combined frontend+backend)
+  // This allows backend to serve both frontend and API
+  console.log(`✅ [API Config] Using relative API paths (frontend & backend combined)`);
+  return '';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
