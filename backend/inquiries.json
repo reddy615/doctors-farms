@@ -78,5 +78,16 @@
     "status": "unpaid",
     "createdAt": "2026-03-30T08:05:33.775Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1775041178291_50504",
+    "name": "Test",
+    "email": "test@example.com",
+    "phone": "",
+    "stay": "N/A",
+    "message": "Hello",
+    "status": "unpaid",
+    "createdAt": "2026-04-01T10:59:38.291Z",
+    "payment": null
   }
 ]
