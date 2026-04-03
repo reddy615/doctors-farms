@@ -24,7 +24,7 @@ public class InquiryService {
     private InquiryRepository inquiryRepository;
 
     @Autowired
-    private JavaMailSender mailSender;
+    private EmailService emailService;
 
     @Value("${app.contact.email:}")
     private String contactEmail;
@@ -32,11 +32,7 @@ public class InquiryService {
     @Value("${app.admin.emails:}")
     private String adminEmailsList;
 
-    @Value("${spring.mail.username:}")
-    private String smtpUsername;
-
     private final String defaultContactEmail = "doctorsfarms686@gmail.com";
-    private final String[] defaultAdminEmails = {defaultContactEmail};
 
 
     public Inquiry createInquiry(String name, String email, String phone, String stay, String message) {
@@ -49,41 +45,17 @@ public class InquiryService {
     }
 
     public boolean sendInquiryEmails(Inquiry inquiry) {
-        String effectiveContactEmail = contactEmail != null && !contactEmail.trim().isEmpty() ?
-            contactEmail : defaultContactEmail;
-        String[] effectiveAdminEmails = adminEmailsList != null && !adminEmailsList.trim().isEmpty() ?
-            adminEmailsList.split(",") : defaultAdminEmails;
-        String effectiveSmtpUsername = smtpUsername != null && !smtpUsername.trim().isEmpty() ?
-            smtpUsername : defaultContactEmail;
-        boolean adminEmailSent = false;
-        boolean userEmailSent = false;
+        boolean adminEmailSent = emailService.sendInquiryAdminNotification(inquiry);
+        boolean userEmailSent = emailService.sendInquiryUserConfirmation(inquiry);
 
-        try {
-            // Send admin notification email
-            sendAdminNotificationEmail(inquiry, effectiveContactEmail, effectiveAdminEmails);
-            adminEmailSent = true;
-            System.out.println("✅ Admin email sent for inquiry: " + inquiry.getInquiryId());
-        } catch (Exception e) {
-            System.err.println("❌ Failed to send admin email: " + e.getMessage());
-        }
-
-        try {
-            // Send user confirmation email
-            sendUserConfirmationEmail(inquiry, effectiveContactEmail, effectiveSmtpUsername);
-            userEmailSent = true;
-            System.out.println("✅ User email sent for inquiry: " + inquiry.getInquiryId());
-        } catch (Exception e) {
-            System.err.println("❌ Failed to send user email: " + e.getMessage());
+        if (!adminEmailSent || !userEmailSent) {
+            System.err.println("⚠️ [InquiryService] Some emails may have failed for inquiry " + inquiry.getInquiryId());
         }
 
         return adminEmailSent && userEmailSent;
     }
 
-    private void sendAdminNotificationEmail(Inquiry inquiry, String contactEmail, String[] adminEmails) throws MessagingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
-        helper.setFrom(inquiry.getEmail());
+    // Deprecated: use EmailService for admin notifications
         helper.setTo(contactEmail);
         helper.setBcc(adminEmails);
         helper.setSubject("New booking inquiry from " + inquiry.getName());
