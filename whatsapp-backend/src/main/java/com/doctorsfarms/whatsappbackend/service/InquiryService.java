@@ -8,6 +8,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.time.LocalDateTime;
@@ -37,8 +38,6 @@ public class InquiryService {
     private final String defaultContactEmail = "doctorsfarms686@gmail.com";
     private final String[] defaultAdminEmails = {defaultContactEmail};
 
-    private final String contactEmail = "doctorsfarms686@gmail.com";
-    private final String[] adminEmails = {contactEmail}; // Can be configured via properties
 
     public Inquiry createInquiry(String name, String email, String phone, String stay, String message) {
         String inquiryId = "INQ_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 100000);
