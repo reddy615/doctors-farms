@@ -5,7 +5,7 @@
  * 
  * Configuration Priority:
  * 1. VITE_API_URL env var (REQUIRED for production)
- * 2. localhost:5003 (development fallback only)
+ * 2. Relative path to same-origin backend (development fallback)
  * 
  * ⚠️  Production deployments MUST set VITE_API_URL to backend URL
  * Example: VITE_API_URL=https://doctors-farms-backend.up.railway.app

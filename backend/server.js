@@ -17,8 +17,8 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5173',
-  'http://localhost:5003',
-  'http://127.0.0.1:5003',
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
   process.env.FRONTEND_URL || 'http://localhost:5174',
   process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null,
 ].filter(Boolean);
@@ -89,7 +89,7 @@ app.get('/api/debug/cors', (req, res) => {
     method: req.method,
     cors_allowed_origins: allowedOrigins,
     frontend_url: process.env.FRONTEND_URL || 'http://localhost:5174',
-    backend_url: process.env.BACKEND_URL || 'http://localhost:5003',
+    backend_url: process.env.BACKEND_URL || 'http://localhost:5000',
     request_headers: req.headers,
   });
 });
@@ -190,7 +190,7 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
 
 // Frontend URLs for redirects (use environment variables for deployment)
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5174';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5003';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
 // PhonePe configuration (replace with your actual credentials)
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'YOUR_MERCHANT_ID';

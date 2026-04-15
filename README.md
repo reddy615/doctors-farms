@@ -39,7 +39,7 @@ A nature-focused resort website built with **Vite + React + TypeScript** and sty
 2. Start development servers:
    ```bash
    npm run dev          # Frontend on http://localhost:5173
-   cd backend && npm start  # Backend on http://localhost:3000
+   cd backend && npm start  # Backend on http://localhost:5000
    ```
 
 ### Docker Deployment
