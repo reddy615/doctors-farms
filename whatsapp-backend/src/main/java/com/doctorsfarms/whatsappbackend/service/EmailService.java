@@ -1,5 +1,6 @@
 package com.doctorsfarms.whatsappbackend.service;
 
+import com.doctorsfarms.whatsappbackend.model.Inquiry;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;

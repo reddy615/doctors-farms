@@ -3,14 +3,9 @@ package com.doctorsfarms.whatsappbackend.service;
 import com.doctorsfarms.whatsappbackend.model.Inquiry;
 import com.doctorsfarms.whatsappbackend.repository.InquiryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import org.springframework.beans.factory.annotation.Value;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -53,61 +48,6 @@ public class InquiryService {
         }
 
         return adminEmailSent && userEmailSent;
-    }
-
-    // Deprecated: use EmailService for admin notifications
-        helper.setTo(contactEmail);
-        helper.setBcc(adminEmails);
-        helper.setSubject("New booking inquiry from " + inquiry.getName());
-
-        String htmlContent = String.format(
-            "<p><strong>Name:</strong> %s</p>" +
-            "<p><strong>Email:</strong> %s</p>" +
-            "<p><strong>Phone:</strong> %s</p>" +
-            "<p><strong>Preferred stay:</strong> %s</p>" +
-            "<p><strong>Message:</strong></p>" +
-            "<p>%s</p>" +
-            "<p><strong>Inquiry ID:</strong> %s</p>" +
-            "<p><strong>Status:</strong> %s</p>",
-            inquiry.getName(),
-            inquiry.getEmail(),
-            inquiry.getPhone(),
-            inquiry.getStay(),
-            inquiry.getMessage().replace("\n", "<br/>"),
-            inquiry.getInquiryId(),
-            inquiry.getStatus()
-        );
-
-        helper.setText(htmlContent, true);
-        mailSender.send(message);
-    }
-
-    private void sendUserConfirmationEmail(Inquiry inquiry, String contactEmail, String smtpUsername) throws MessagingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
-        helper.setFrom("\"Doctors Farms\" <" + smtpUsername + ">");
-        helper.setTo(inquiry.getEmail());
-        helper.setSubject("Your booking inquiry " + inquiry.getInquiryId() + " received");
-
-        String htmlContent = String.format(
-            "<div style=\"font-family: Arial, sans-serif; color: #1f2937; line-height:1.6;\">" +
-            "<h2>Booking Inquiry Received</h2>" +
-            "<p>Hi %s,</p>" +
-            "<p>Thank you for reaching out. Your inquiry has been received and we will contact you soon.</p>" +
-            "<p><strong>Inquiry ID:</strong> %s</p>" +
-            "<p><strong>Stay:</strong> %s</p>" +
-            "<p><strong>Message:</strong><br>%s</p>" +
-            "<p>Best regards,<br>Doctors Farms Team</p>" +
-            "</div>",
-            inquiry.getName(),
-            inquiry.getInquiryId(),
-            inquiry.getStay(),
-            inquiry.getMessage().replace("\n", "<br>")
-        );
-
-        helper.setText(htmlContent, true);
-        mailSender.send(message);
     }
 
     public List<Inquiry> getAllInquiries() {
