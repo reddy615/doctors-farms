@@ -65,7 +65,8 @@ The application will start on `http://localhost:8080`
 ## API Endpoints
 
 ### Inquiry Management
-- `POST /api/send-mail` - Submit booking inquiry
+- `POST /api/send-mail` - Submit booking inquiry (saves inquiry + sends admin/user emails)
+- `POST /api/send-email` - Direct email send (to/subject/html) with retry and validation
 - `GET /api/inquiries` - Get all inquiries
 - `GET /api/inquiries/{id}` - Get specific inquiry
 - `GET /api/admins` - Get admin list
