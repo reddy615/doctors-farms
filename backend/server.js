@@ -502,7 +502,7 @@ app.post('/api/create-payment', async (req, res) => {
     amount: amount * 100, // Amount in paisa
     redirectUrl: `${FRONTEND_URL}/payment-success`,
     redirectMode: 'REDIRECT',
-    callbackUrl: `${BACKEND_URL}/payment-callback`,
+    callbackUrl: `${BACKEND_URL}/api/payment-callback`,
     mobileNumber: '9999999999', // Optional
     paymentInstrument: {
       type: 'PAY_PAGE'
@@ -570,7 +570,7 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`✅ Backend server running on port ${PORT}`);
   console.log(`${'='.repeat(60)}`);
