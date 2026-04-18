@@ -82,6 +82,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Mail health endpoint for frontend precheck UI
+app.get('/api/health/mail', (req, res) => {
+  const healthy = !!transporter && smtpVerified;
+
+  res.status(healthy ? 200 : 503).json({
+    success: healthy,
+    backendReachable: true,
+    smtpConfigured: !!transporter,
+    smtpVerified,
+    message: healthy
+      ? 'Mail service is ready.'
+      : smtpLastError
+        ? `Mail service unavailable: ${smtpLastError}`
+        : 'Mail service is not configured or not verified.',
+  });
+});
+
 // Debug endpoint - shows CORS info
 app.get('/api/debug/cors', (req, res) => {
   res.json({

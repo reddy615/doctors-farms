@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { getApiEndpoint } from "../config/api";
+import { useEffect, useState } from "react";
+import { apiFetch } from "../config/api";
 
 const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: string; email: string }) => {
   const [processing, setProcessing] = useState(false);
@@ -7,7 +7,7 @@ const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: stri
   const handlePayment = async () => {
     setProcessing(true);
     try {
-      const response = await fetch(getApiEndpoint('/api/create-payment'), {
+      const response = await apiFetch('/api/create-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -51,6 +51,33 @@ export default function Contact() {
   const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'pending'>('idle');
   const [mailError, setMailError] = useState('');
   const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<'sent' | 'delayed' | 'pending' | null>(null);
+  const [mailHealth, setMailHealth] = useState<{
+    checked: boolean;
+    healthy: boolean;
+    message: string;
+  }>({ checked: false, healthy: true, message: '' });
+
+  useEffect(() => {
+    const checkMailHealth = async () => {
+      try {
+        const response = await apiFetch('/api/health/mail', { method: 'GET' });
+        const result = await response.json();
+        setMailHealth({
+          checked: true,
+          healthy: !!result?.success,
+          message: result?.message || 'Mail service is ready.',
+        });
+      } catch (error) {
+        setMailHealth({
+          checked: true,
+          healthy: false,
+          message: error instanceof Error ? error.message : 'Unable to check mail service status.',
+        });
+      }
+    };
+
+    checkMailHealth();
+  }, []);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
@@ -63,7 +90,7 @@ export default function Contact() {
 
     try {
       console.log('Sending form data:', form);
-      const response = await fetch(getApiEndpoint('/api/send-mail'), {
+      const response = await apiFetch('/api/send-mail', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -95,17 +122,7 @@ export default function Contact() {
       console.error('Mail send error:', error);
       setMailStatus('error');
       
-      // Provide user-friendly error messages
-      let errorMsg = 'Unexpected error';
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch')) {
-          errorMsg = 'Server not reachable. Please check your internet or try again later.';
-        } else if (error.message.includes('Invalid response')) {
-          errorMsg = 'Server returned an invalid response.';
-        } else {
-          errorMsg = error.message;
-        }
-      }
+      const errorMsg = error instanceof Error ? error.message : 'Unexpected error';
       setMailError(errorMsg);
     }
   };
@@ -175,6 +192,12 @@ export default function Contact() {
             <p className="mt-2 text-sm text-slate-600">
               Share a few details and we'll be in touch about availability and packages.
             </p>
+            {mailHealth.checked && !mailHealth.healthy && (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <p className="font-medium">Mail service issue detected</p>
+                <p className="mt-1">{mailHealth.message}</p>
+              </div>
+            )}
             {mailStatus === 'sending' && (
               <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
                 Sending inquiry...
