@@ -111,13 +111,15 @@ app.get('/api/debug/config', (req, res) => {
       smtp_user: process.env.SMTP_USER ? '✅ SET (hidden)' : '❌ NOT SET',
       smtp_pass: process.env.SMTP_PASS ? '✅ SET (hidden)' : '❌ NOT SET',
       smtp_secure: process.env.SMTP_SECURE || 'false (default)',
-      transporter_status: transporter ? '✅ ACTIVE - emails can be sent' : '❌ NOT CONFIGURED - emails will fail',
+      transporter_status: transporter ? (smtpVerified ? '✅ VERIFIED - emails can be sent' : '⚠️ CREATED BUT NOT VERIFIED - check credentials') : '❌ NOT CONFIGURED - emails will fail',
+      smtp_verified: smtpVerified,
+      last_smtp_error: smtpLastError,
       fix_if_failing: 'Add SMTP_HOST, SMTP_USER, SMTP_PASS to Railway Backend variables and redeploy',
     },
     // API endpoint status
     endpoint_status: {
       health: '✅ available',
-      send_mail: transporter ? '✅ available' : '❌ disabled (no SMTP)',
+      send_mail: transporter && smtpVerified ? '✅ available' : '❌ disabled (SMTP not verified)',
       inquiries: '✅ available',
       create_payment: '✅ available',
     },
@@ -160,6 +162,8 @@ const ADMIN_LIST = process.env.ADMIN_LIST || CONTACT_EMAIL;
 const ADMIN_EMAILS = ADMIN_LIST.split(',').map((item) => item.trim()).filter(Boolean);
 
 let transporter;
+let smtpVerified = false;
+let smtpLastError = null;
 if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
   transporter = nodemailer.createTransport({
     host: SMTP_HOST,
@@ -174,8 +178,12 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
   // Verify transporter configuration
   transporter.verify((error, success) => {
     if (error) {
+      smtpVerified = false;
+      smtpLastError = error instanceof Error ? error.message : String(error);
       console.error('❌ SMTP transporter verification failed:', error);
     } else {
+      smtpVerified = true;
+      smtpLastError = null;
       console.log('✅ SMTP transporter verified successfully');
     }
   });
@@ -221,12 +229,14 @@ app.post('/api/send-mail', async (req, res) => {
   console.log('   [DEBUG] SMTP_HOST env:', process.env.SMTP_HOST || '✗ NOT SET');
   console.log('   [DEBUG] Request body fields:', Object.keys(req.body).join(', '));
   
-  if (!transporter) {
+  if (!transporter || !smtpVerified) {
     console.error('❌ [SEND-MAIL] SMTP transporter NOT configured!');
     console.error('   Required: SMTP_HOST, SMTP_USER, SMTP_PASS environment variables');
     return res.status(500).json({ 
       success: false, 
-      error: 'Mail service is not configured. Please configure SMTP variables.' 
+      error: smtpLastError
+        ? `Mail service authentication failed: ${smtpLastError}`
+        : 'Mail service is not configured. Please configure SMTP variables.' 
     });
   }
 
@@ -252,7 +262,9 @@ app.post('/api/send-mail', async (req, res) => {
   writeInquiries(inquiries);
 
   const mailData = {
-    from: `${name} <${email}>`,
+    // Gmail often blocks arbitrary "from" addresses. Use account sender + replyTo.
+    from: `"Doctors Farms Website" <${SMTP_USER}>`,
+    replyTo: email,
     to: CONTACT_EMAIL,
     bcc: ADMIN_EMAILS,
     subject: `New booking inquiry from ${name}`,
@@ -268,9 +280,14 @@ app.post('/api/send-mail', async (req, res) => {
     `,
   };
 
-  if (!transporter) {
+  if (!transporter || !smtpVerified) {
     console.warn('No transporter configured, inquiry stored but mail is disabled.');
-    return res.status(500).json({ success: false, error: 'Mail service is not configured. Please configure SMTP credentials.' });
+    return res.status(500).json({
+      success: false,
+      error: smtpLastError
+        ? `Mail service authentication failed: ${smtpLastError}`
+        : 'Mail service is not configured. Please configure SMTP credentials.',
+    });
   }
 
   const adminMail = mailData;
