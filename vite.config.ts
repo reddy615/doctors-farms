@@ -1,21 +1,13 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  plugins: [react()],
   server: {
     host: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
-      '/health': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
-    },
   },
   preview: {
     host: true,
-    allowedHosts: 'all',
+    allowedHosts: ['doctors-farms-frontend-production.up.railway.app'],
   },
 });
