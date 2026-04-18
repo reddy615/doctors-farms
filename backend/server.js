@@ -3,6 +3,7 @@ const cors = require('cors');
 const crypto = require('crypto');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
@@ -84,13 +85,15 @@ app.get('/api/health', (req, res) => {
 
 // Mail health endpoint for frontend precheck UI
 app.get('/api/health/mail', (req, res) => {
-  const healthy = !!transporter && smtpVerified;
+  const configured = usingResend ? !!resendClient : !!transporter;
+  const healthy = usingResend ? !!resendClient : (!!transporter && smtpVerified);
 
   res.status(healthy ? 200 : 503).json({
     success: healthy,
     backendReachable: true,
-    smtpConfigured: !!transporter,
-    smtpVerified,
+    provider: MAIL_PROVIDER,
+    smtpConfigured: configured,
+    smtpVerified: healthy,
     message: healthy
       ? 'Mail service is ready.'
       : smtpLastError
@@ -117,7 +120,8 @@ app.get('/api/debug/config', (req, res) => {
     frontend_url: FRONTEND_URL,
     backend_url: BACKEND_URL,
     phonepe_env: process.env.PHONEPE_ENV || 'production',
-    smtp_configured: !!transporter,
+    smtp_configured: usingResend ? !!resendClient : !!transporter,
+    mail_provider: MAIL_PROVIDER,
     smtp_user: SMTP_USER ? SMTP_USER.substring(0, 3) + '***' : 'not configured',
     admin_emails: ADMIN_EMAILS,
     environment: process.env.NODE_ENV || 'development',
@@ -127,16 +131,21 @@ app.get('/api/debug/config', (req, res) => {
       smtp_port: process.env.SMTP_PORT || 'NOT SET (default: 587)',
       smtp_user: process.env.SMTP_USER ? '✅ SET (hidden)' : '❌ NOT SET',
       smtp_pass: process.env.SMTP_PASS ? '✅ SET (hidden)' : '❌ NOT SET',
+      resend_api_key: process.env.RESEND_API_KEY ? '✅ SET (hidden)' : '❌ NOT SET',
       smtp_secure: process.env.SMTP_SECURE || 'false (default)',
-      transporter_status: transporter ? (smtpVerified ? '✅ VERIFIED - emails can be sent' : '⚠️ CREATED BUT NOT VERIFIED - check credentials') : '❌ NOT CONFIGURED - emails will fail',
-      smtp_verified: smtpVerified,
+      transporter_status: usingResend
+        ? (resendClient ? '✅ RESEND CLIENT READY' : '❌ RESEND NOT CONFIGURED')
+        : (transporter ? (smtpVerified ? '✅ VERIFIED - emails can be sent' : '⚠️ CREATED BUT NOT VERIFIED - check credentials') : '❌ NOT CONFIGURED - emails will fail'),
+      smtp_verified: usingResend ? !!resendClient : smtpVerified,
       last_smtp_error: smtpLastError,
       fix_if_failing: 'Add SMTP_HOST, SMTP_USER, SMTP_PASS to Railway Backend variables and redeploy',
     },
     // API endpoint status
     endpoint_status: {
       health: '✅ available',
-      send_mail: transporter && smtpVerified ? '✅ available' : '❌ disabled (SMTP not verified)',
+      send_mail: usingResend
+        ? (resendClient ? '✅ available' : '❌ disabled (Resend not configured)')
+        : (transporter && smtpVerified ? '✅ available' : '❌ disabled (SMTP not verified)'),
       inquiries: '✅ available',
       create_payment: '✅ available',
     },
@@ -167,12 +176,24 @@ function writeInquiries(inquiries) {
 }
 
 // Email configuration
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
-const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
+const MAIL_PROVIDER = (process.env.MAIL_PROVIDER || 'custom').toLowerCase();
+const MAIL_PRESETS = {
+  gmail: { host: 'smtp.gmail.com', port: 587, secure: false },
+  brevo: { host: 'smtp-relay.brevo.com', port: 587, secure: false },
+  resend: null,
+  custom: null,
+};
+const MAIL_PRESET = MAIL_PRESETS[MAIL_PROVIDER] || MAIL_PRESETS.custom;
+
+const SMTP_HOST = process.env.SMTP_HOST || MAIL_PRESET?.host || 'smtp.gmail.com';
+const SMTP_PORT = Number(process.env.SMTP_PORT || MAIL_PRESET?.port || 587);
+const SMTP_SECURE =
+  String(process.env.SMTP_SECURE ?? MAIL_PRESET?.secure ?? false).toLowerCase() === 'true';
 const SMTP_USER = process.env.SMTP_USER || process.env.EMAIL_USER;
 const SMTP_PASS = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'doctorsfarms686@gmail.com';
+const MAIL_FROM = process.env.MAIL_FROM || SMTP_USER || CONTACT_EMAIL;
 
 // ADMIN_LIST can be comma-separated values, e.g. ADMIN_LIST=admin1@example.com,admin2@example.com
 const ADMIN_LIST = process.env.ADMIN_LIST || CONTACT_EMAIL;
@@ -181,7 +202,10 @@ const ADMIN_EMAILS = ADMIN_LIST.split(',').map((item) => item.trim()).filter(Boo
 let transporter;
 let smtpVerified = false;
 let smtpLastError = null;
-if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+const usingResend = MAIL_PROVIDER === 'resend';
+const resendClient = usingResend && RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+if (!usingResend && SMTP_HOST && SMTP_USER && SMTP_PASS) {
   transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
@@ -206,6 +230,15 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
   });
 
   console.log('✅ SMTP transporter configured for:', SMTP_USER);
+  console.log('✅ MAIL_PROVIDER:', MAIL_PROVIDER);
+} else if (usingResend) {
+  if (resendClient) {
+    console.log('✅ Resend client configured');
+  } else {
+    smtpLastError = 'RESEND_API_KEY is missing while MAIL_PROVIDER=resend.';
+    console.warn('⚠️  Resend configuration incomplete: RESEND_API_KEY missing');
+  }
+  console.log('✅ MAIL_PROVIDER:', MAIL_PROVIDER);
 } else {
   console.warn('⚠️  SMTP configuration incomplete:');
   console.warn('   SMTP_HOST:', SMTP_HOST ? '✓' : '✗');
@@ -241,21 +274,11 @@ app.use((req, res, next) => {
 app.post('/api/send-mail', async (req, res) => {
   console.log('📧 [SEND-MAIL] Request received');
   console.log('   [DEBUG] Transporter configured:', !!transporter);
+  console.log('   [DEBUG] SMTP verified:', smtpVerified);
   console.log('   [DEBUG] SMTP_USER env:', process.env.SMTP_USER ? '✓ Set' : '✗ NOT SET');
   console.log('   [DEBUG] SMTP_PASS env:', process.env.SMTP_PASS ? '✓ Set' : '✗ NOT SET');
   console.log('   [DEBUG] SMTP_HOST env:', process.env.SMTP_HOST || '✗ NOT SET');
   console.log('   [DEBUG] Request body fields:', Object.keys(req.body).join(', '));
-  
-  if (!transporter || !smtpVerified) {
-    console.error('❌ [SEND-MAIL] SMTP transporter NOT configured!');
-    console.error('   Required: SMTP_HOST, SMTP_USER, SMTP_PASS environment variables');
-    return res.status(500).json({ 
-      success: false, 
-      error: smtpLastError
-        ? `Mail service authentication failed: ${smtpLastError}`
-        : 'Mail service is not configured. Please configure SMTP variables.' 
-    });
-  }
 
   const { name, email, phone, stay, message } = req.body;
   if (!name || !email || !message) {
@@ -278,9 +301,22 @@ app.post('/api/send-mail', async (req, res) => {
   inquiries.push(inquiry);
   writeInquiries(inquiries);
 
+  const canSendMail = usingResend ? !!resendClient : (!!transporter && smtpVerified);
+
+  if (!canSendMail) {
+    console.warn('⚠️ [SEND-MAIL] Inquiry saved but SMTP is unavailable. Returning pending email status.');
+    return res.json({
+      success: true,
+      message: 'Inquiry saved. Email service is currently unavailable; our team will still follow up.',
+      inquiryId: inquiry.id,
+      emailStatus: 'pending',
+      note: smtpLastError || 'SMTP transporter not configured or not verified.',
+    });
+  }
+
   const mailData = {
     // Gmail often blocks arbitrary "from" addresses. Use account sender + replyTo.
-    from: `"Doctors Farms Website" <${SMTP_USER}>`,
+    from: `"Doctors Farms Website" <${MAIL_FROM}>`,
     replyTo: email,
     to: CONTACT_EMAIL,
     bcc: ADMIN_EMAILS,
@@ -297,19 +333,9 @@ app.post('/api/send-mail', async (req, res) => {
     `,
   };
 
-  if (!transporter || !smtpVerified) {
-    console.warn('No transporter configured, inquiry stored but mail is disabled.');
-    return res.status(500).json({
-      success: false,
-      error: smtpLastError
-        ? `Mail service authentication failed: ${smtpLastError}`
-        : 'Mail service is not configured. Please configure SMTP credentials.',
-    });
-  }
-
   const adminMail = mailData;
   const userMail = {
-    from: `"Doctors Farms" <${SMTP_USER}>`,
+    from: `"Doctors Farms" <${MAIL_FROM}>`,
     to: email,
     subject: `Your booking inquiry ${inquiry.id} received`,
     text: `Hi ${name},\n\nThanks for your inquiry. We received your request and will get back shortly.\n\nInquiry ID: ${inquiry.id}\nStay: ${inquiry.stay}\nMessage:\n${inquiry.message}\n\nRegards,\nDoctors Farms`,
@@ -329,23 +355,64 @@ app.post('/api/send-mail', async (req, res) => {
   try {
     let adminInfo, userInfo;
     let emailSendFailed = false;
-    
-    try {
-      console.log('   [INFO] Attempting to send admin email to:', ADMIN_EMAILS);
-      adminInfo = await transporter.sendMail(adminMail);
-      console.log('   ✅ [INFO] Admin email sent:', adminInfo.messageId);
-    } catch (emailError) {
-      console.error('   ❌ [ERROR] Admin email failed:', emailError instanceof Error ? emailError.message : emailError);
-      emailSendFailed = true;
-    }
 
-    try {
-      console.log('   [INFO] Attempting to send user email to:', email);
-      userInfo = await transporter.sendMail(userMail);
-      console.log('   ✅ [INFO] User email sent:', userInfo.messageId);
-    } catch (emailError) {
-      console.error('   ❌ [ERROR] User email failed:', emailError instanceof Error ? emailError.message : emailError);
-      emailSendFailed = true;
+    if (usingResend) {
+      try {
+        console.log('   [INFO] Attempting to send admin email via Resend to:', ADMIN_EMAILS);
+        adminInfo = await resendClient.emails.send({
+          from: MAIL_FROM,
+          to: ADMIN_EMAILS,
+          replyTo: email,
+          subject: adminMail.subject,
+          text: adminMail.text,
+          html: adminMail.html,
+        });
+        if (adminInfo?.error) {
+          throw new Error(adminInfo.error.message || 'Unknown Resend admin email error');
+        }
+        console.log('   ✅ [INFO] Admin email sent via Resend:', adminInfo?.data?.id || 'no-id');
+      } catch (emailError) {
+        console.error('   ❌ [ERROR] Admin email failed:', emailError instanceof Error ? emailError.message : emailError);
+        smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
+        emailSendFailed = true;
+      }
+
+      try {
+        console.log('   [INFO] Attempting to send user email via Resend to:', email);
+        userInfo = await resendClient.emails.send({
+          from: MAIL_FROM,
+          to: [email],
+          subject: userMail.subject,
+          text: userMail.text,
+          html: userMail.html,
+        });
+        if (userInfo?.error) {
+          throw new Error(userInfo.error.message || 'Unknown Resend customer email error');
+        }
+        console.log('   ✅ [INFO] User email sent via Resend:', userInfo?.data?.id || 'no-id');
+      } catch (emailError) {
+        console.error('   ❌ [ERROR] User email failed:', emailError instanceof Error ? emailError.message : emailError);
+        smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
+        emailSendFailed = true;
+      }
+    } else {
+      try {
+        console.log('   [INFO] Attempting to send admin email to:', ADMIN_EMAILS);
+        adminInfo = await transporter.sendMail(adminMail);
+        console.log('   ✅ [INFO] Admin email sent:', adminInfo.messageId);
+      } catch (emailError) {
+        console.error('   ❌ [ERROR] Admin email failed:', emailError instanceof Error ? emailError.message : emailError);
+        emailSendFailed = true;
+      }
+
+      try {
+        console.log('   [INFO] Attempting to send user email to:', email);
+        userInfo = await transporter.sendMail(userMail);
+        console.log('   ✅ [INFO] User email sent:', userInfo.messageId);
+      } catch (emailError) {
+        console.error('   ❌ [ERROR] User email failed:', emailError instanceof Error ? emailError.message : emailError);
+        emailSendFailed = true;
+      }
     }
 
     console.log('   [INFO] Inquiry saved with ID:', inquiry.id);
@@ -353,8 +420,8 @@ app.post('/api/send-mail', async (req, res) => {
       success: true,
       message: emailSendFailed ? 'Inquiry saved. Email delivery delayed.' : 'Inquiry saved and emails sent.',
       inquiryId: inquiry.id,
-      adminMessageId: adminInfo?.messageId || null,
-      userMessageId: userInfo?.messageId || null,
+      adminMessageId: adminInfo?.messageId || adminInfo?.data?.id || null,
+      userMessageId: userInfo?.messageId || userInfo?.data?.id || null,
       emailStatus: emailSendFailed ? 'delayed' : 'sent',
     };
     console.log('   ✅ [SEND-MAIL] Response:', responseData);

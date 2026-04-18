@@ -89,5 +89,38 @@
     "status": "unpaid",
     "createdAt": "2026-04-01T10:59:38.291Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1776506000105_63827",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "",
+    "stay": "N/A",
+    "message": "Post-patch verification",
+    "status": "unpaid",
+    "createdAt": "2026-04-18T09:53:20.105Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776506554495_16312",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "",
+    "stay": "N/A",
+    "message": "Resend-ready patch check",
+    "status": "unpaid",
+    "createdAt": "2026-04-18T10:02:34.495Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776506909454_95208",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "",
+    "stay": "N/A",
+    "message": "Resend mode check",
+    "status": "unpaid",
+    "createdAt": "2026-04-18T10:08:29.454Z",
+    "payment": null
   }
 ]

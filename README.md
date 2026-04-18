@@ -65,6 +65,34 @@ Set these for PhonePe and mail integration:
 - `SMTP_PASS` — SMTP password/app password
 - `CONTACT_EMAIL` — Destination inbox for booking inquiries
 
+Provider-based mail options:
+
+- `MAIL_PROVIDER` — `custom` | `gmail` | `brevo` | `resend`
+- `MAIL_FROM` — sender address, e.g. `bookings@doctorsfarms.in`
+- `RESEND_API_KEY` — required when `MAIL_PROVIDER=resend`
+
+Recommended production setup:
+
+1. Use a transactional provider (`resend`, `brevo`, `sendgrid`, or `ses`) instead of personal Gmail SMTP.
+2. Verify your sending domain (`SPF`, `DKIM`, and `DMARC`).
+3. Save booking/inquiry data first, then send emails (this backend already follows this pattern).
+
+### Resend Quick Setup
+
+1. Create and verify a domain sender in Resend.
+2. Add these variables in backend environment:
+
+```env
+MAIL_PROVIDER=resend
+RESEND_API_KEY=your_resend_api_key
+MAIL_FROM=bookings@doctorsfarms.in
+CONTACT_EMAIL=doctorsfarms686@gmail.com
+ADMIN_LIST=doctorsfarms686@gmail.com
+```
+
+3. Restart backend and verify with:
+   - `GET /api/health/mail`
+
 ## Public Deployment
 
 ### Option 1: Railway (Recommended)
