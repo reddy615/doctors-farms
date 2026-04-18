@@ -60,10 +60,10 @@ export const apiFetch = async (
   
   console.log(`[API] ${method} ${primaryUrl}`);
 
-  const urlsToTry =
-    API_BASE_URL && API_BASE_URL !== ''
-      ? [primaryUrl, fallbackUrl]
-      : [primaryUrl];
+  // Never retry to same-origin in production when a separate backend URL is configured.
+  // Doing so can return frontend HTML for /api routes, which then breaks JSON parsing.
+  const allowSameOriginFallback = import.meta.env.DEV && API_BASE_URL && API_BASE_URL !== '';
+  const urlsToTry = allowSameOriginFallback ? [primaryUrl, fallbackUrl] : [primaryUrl];
 
   let lastNetworkError: Error | null = null;
 
@@ -111,6 +111,18 @@ export const apiFetch = async (
         );
       }
 
+      const contentType = response.headers.get('content-type') || '';
+      const expectsJson = cleanPath.startsWith('/api') || cleanPath.includes('/api/');
+      if (expectsJson && !contentType.toLowerCase().includes('application/json')) {
+        const preview = (await response.text()).slice(0, 160).replace(/\s+/g, ' ').trim();
+        throw new Error(
+          `Expected JSON from API but received ${contentType || 'unknown content type'}. ` +
+            `This usually means the request hit the frontend app URL instead of backend API. ` +
+            `Set VITE_API_URL to your backend Railway URL and redeploy. ` +
+            `Response preview: ${preview}`
+        );
+      }
+
       console.log(`[API] ✅ ${method} ${url} succeeded`);
       return response;
     } catch (error) {
@@ -137,6 +149,7 @@ export const apiFetch = async (
               `• Incorrect backend URL: ${targetForMessage}\n` +
               `• Network connectivity issue\n` +
               `• CORS policy blocking the request\n\n` +
+              `${import.meta.env.PROD ? '• In Railway, ensure VITE_API_URL points to backend service URL and redeploy\n\n' : ''}` +
               `Try:\n` +
               `1. Check if backend is running\n` +
               `2. Visit ${targetForMessage}/health in your browser\n` +
