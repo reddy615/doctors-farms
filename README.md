@@ -22,9 +22,8 @@ A nature-focused resort website built with **Vite + React + TypeScript** and sty
 - `src/` — React application source files
 - `src/pages/` — main pages (Home, Rooms, About, Activities, Dining, Gallery, Contact)
 - `src/components/` — shared UI components (Navbar, Footer)
-- `backend/` — PhonePe payment API server
+- `backend/` — Express backend for mail, inquiries, and PhonePe payment APIs
 - `public/` — static assets (images, videos)
-- `api/` — Vercel serverless functions (alternative deployment)
 
 ## Getting Started
 
@@ -33,14 +32,14 @@ A nature-focused resort website built with **Vite + React + TypeScript** and sty
 1. Install dependencies:
    ```bash
    npm install
-   cd backend && npm install
    ```
 
 2. Start development servers:
    ```bash
-   npm run dev          # Frontend on http://localhost:5173
-   cd backend && npm start  # Backend on http://localhost:5000
+   npm run dev          # Single localhost on http://localhost:5000
    ```
+
+The Express server serves both the API and the frontend in development, so you only need one local URL.
 
 ### Docker Deployment
 
@@ -108,8 +107,9 @@ ADMIN_LIST=doctorsfarms686@gmail.com
 
 1. Install Vercel CLI: `npm i -g vercel`
 2. Run `vercel` in project root
-3. Set environment variables in Vercel dashboard
-4. Deploy with `vercel --prod`
+3. Set environment variables in Vercel dashboard for the frontend build only
+4. Set `VITE_API_URL` to your deployed backend URL
+5. Deploy with `vercel --prod`
 
 ### Option 3: DigitalOcean App Platform
 

@@ -21,9 +21,8 @@ export const getApiBaseUrl = (): string => {
     return cleanUrl;
   }
 
-  // Priority 2: Use relative paths (works for combined frontend+backend)
-  // This allows backend to serve both frontend and API
-  console.log(`✅ [API Config] Using relative API paths (frontend & backend combined)`);
+  // Priority 2: Use relative paths during local development when the backend is proxied on the same origin.
+  console.log(`✅ [API Config] Using relative API paths (local same-origin fallback)`);
   return '';
 };
 

@@ -52,8 +52,31 @@ app.options('*', cors());
 
 app.use(express.json());
 
-// Serve static files from the React app build directory
-app.use(express.static(path.join(__dirname, '../dist')));
+const isProduction = process.env.NODE_ENV === 'production';
+const frontendRoot = path.resolve(__dirname, '..');
+
+let vite;
+
+async function setupFrontendMiddleware() {
+  if (isProduction) {
+    app.use(express.static(path.join(__dirname, '../dist')));
+    return;
+  }
+
+  const { createServer } = await import('vite');
+  vite = await createServer({
+    root: frontendRoot,
+    appType: 'custom',
+    server: {
+      middlewareMode: true,
+      hmr: {
+        port: 5000,
+      },
+    },
+  });
+
+  app.use(vite.middlewares);
+}
 
 // Health check endpoints - for testing backend availability
 app.get('/health', (req, res) => {
@@ -565,24 +588,53 @@ app.post('/api/payment-callback', (req, res) => {
 });
 
 // Catch all handler: send back React's index.html file for client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+app.use(async (req, res, next) => {
+  try {
+    const acceptHeader = req.headers.accept || '';
+    const isPageRequest = req.method === 'GET' && acceptHeader.includes('text/html');
+
+    if (!isPageRequest) {
+      return next();
+    }
+
+    if (isProduction) {
+      return res.sendFile(path.join(__dirname, '../dist/index.html'));
+    }
+
+    const template = fs.readFileSync(path.resolve(frontendRoot, 'index.html'), 'utf-8');
+    const html = await vite.transformIndexHtml(req.originalUrl, template);
+    return res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+  } catch (error) {
+    if (!isProduction && vite) {
+      vite.ssrFixStacktrace(error);
+    }
+    next(error);
+  }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`✅ Backend server running on port ${PORT}`);
-  console.log(`${'='.repeat(60)}`);
-  console.log(`\n📝 Available Endpoints:`);
-  console.log(`   Health Check: http://localhost:${PORT}/health`);
-  console.log(`   API Health: http://localhost:${PORT}/api/health`);
-  console.log(`   Debug CORS: http://localhost:${PORT}/api/debug/cors`);
-  console.log(`   Debug Config: http://localhost:${PORT}/api/debug/config`);
-  console.log(`   Send Mail: POST http://localhost:${PORT}/api/send-mail`);
-  console.log(`   Inquiries: GET http://localhost:${PORT}/api/inquiries`);
-  console.log(`   Admins: GET http://localhost:${PORT}/api/admins`);
-  console.log(`\n🌍 Allowed Origins:`);
-  allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
-  console.log(`\n${'='.repeat(60)}\n`);
+async function start() {
+  await setupFrontendMiddleware();
+
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n${'='.repeat(60)}`);
+    console.log(`✅ Backend server running on port ${PORT}`);
+    console.log(`${'='.repeat(60)}`);
+    console.log(`\n📝 Available Endpoints:`);
+    console.log(`   Health Check: http://localhost:${PORT}/health`);
+    console.log(`   API Health: http://localhost:${PORT}/api/health`);
+    console.log(`   Debug CORS: http://localhost:${PORT}/api/debug/cors`);
+    console.log(`   Debug Config: http://localhost:${PORT}/api/debug/config`);
+    console.log(`   Send Mail: POST http://localhost:${PORT}/api/send-mail`);
+    console.log(`   Inquiries: GET http://localhost:${PORT}/api/inquiries`);
+    console.log(`   Admins: GET http://localhost:${PORT}/api/admins`);
+    console.log(`\n🌍 Allowed Origins:`);
+    allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
+    console.log(`\n${'='.repeat(60)}\n`);
+  });
+}
+
+start().catch((error) => {
+  console.error('Failed to start backend server:', error);
+  process.exit(1);
 });
