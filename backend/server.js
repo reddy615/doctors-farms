@@ -587,7 +587,7 @@ app.post('/api/payment-callback', (req, res) => {
 app.use(async (req, res, next) => {
   try {
     const acceptHeader = req.headers.accept || '';
-    const isPageRequest = req.method === 'GET' && acceptHeader.includes('text/html');
+    const isPageRequest = req.method === 'GET' && acceptHeader.includes('text/html') && !req.path.startsWith('/api');
 
     if (!isPageRequest) {
       return next();
