@@ -11,6 +11,10 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "https://doctors-farms-backend.up.railway.app/api/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/dist/$1"
     }
