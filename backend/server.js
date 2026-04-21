@@ -615,8 +615,8 @@ async function start() {
     app.use(vite.middlewares);
   }
 
-  const PORT = process.env.PORT || 5174;
-  const HOST = process.env.HOST || (isProduction ? '0.0.0.0' : '127.0.0.1');
+  const PORT = process.env.PORT || (isProduction ? 5000 : 5174);
+  const HOST = process.env.HOST || '0.0.0.0';
   app.listen(PORT, HOST, () => {
     console.log(`\n${'='.repeat(60)}`);
     console.log(`✅ Backend server running on ${HOST}:${PORT}`);
