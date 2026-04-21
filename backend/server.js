@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
+const rateLimit = require('express-rate-limit');
+const { z } = require('zod');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
@@ -289,27 +291,54 @@ app.use((req, res, next) => {
   next();
 });
 
-// Send mail route for contact form notifications
-app.post('/api/send-mail', async (req, res) => {
-  console.log('📧 [SEND-MAIL] Request received');
-  console.log('   [DEBUG] Transporter configured:', !!transporter);
-  console.log('   [DEBUG] SMTP verified:', smtpVerified);
-  console.log('   [DEBUG] SMTP_USER env:', process.env.SMTP_USER ? '✓ Set' : '✗ NOT SET');
-  console.log('   [DEBUG] SMTP_PASS env:', process.env.SMTP_PASS ? '✓ Set' : '✗ NOT SET');
-  console.log('   [DEBUG] SMTP_HOST env:', process.env.SMTP_HOST || '✗ NOT SET');
-  console.log('   [DEBUG] Request body fields:', Object.keys(req.body).join(', '));
+const inquiryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many inquiries submitted. Please try again later.',
+  },
+});
 
-  const { name, email, phone, stay, message } = req.body;
-  if (!name || !email || !message) {
-    return res.status(400).json({ success: false, error: 'Name, email and message are required.' });
+const inquirySchema = z.object({
+  name: z.string().min(2, 'Name is required').max(100),
+  email: z.string().email('Valid email is required'),
+  phone: z.string().max(20).optional().default(''),
+  stay: z.string().max(100).optional().default('Not provided'),
+  message: z.string().min(5, 'Message is required').max(2000),
+});
+
+function normalizeInquiryInput(body = {}) {
+  return {
+    name: body.name || body.fullName,
+    email: body.email,
+    phone: body.phone,
+    stay: body.stay || body.service || body.preferredDate || 'Not provided',
+    message: body.message,
+  };
+}
+
+async function submitInquiry(req, res) {
+  console.log('📧 [INQUIRY] Request received');
+
+  const parsed = inquirySchema.safeParse(normalizeInquiryInput(req.body));
+  if (!parsed.success) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors: parsed.error.flatten(),
+    });
   }
 
+  const { name, email, phone, stay, message } = parsed.data;
   const inquiry = {
     id: `INQ_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
     name,
     email,
     phone: phone || '',
-    stay: stay || 'N/A',
+    stay: stay || 'Not provided',
     message,
     status: 'unpaid',
     createdAt: new Date().toISOString(),
@@ -323,36 +352,32 @@ app.post('/api/send-mail', async (req, res) => {
   const canSendMail = usingResend ? !!resendClient : (!!transporter && smtpVerified);
 
   if (!canSendMail) {
-    console.warn('⚠️ [SEND-MAIL] Inquiry saved but SMTP is unavailable. Returning pending email status.');
     return res.json({
       success: true,
       message: 'Inquiry saved. Email service is currently unavailable; our team will still follow up.',
       inquiryId: inquiry.id,
       emailStatus: 'pending',
-      note: smtpLastError || 'SMTP transporter not configured or not verified.',
+      note: smtpLastError || 'Mail transporter not configured or verified.',
     });
   }
 
-  const mailData = {
-    // Gmail often blocks arbitrary "from" addresses. Use account sender + replyTo.
+  const adminMail = {
     from: `"Doctors Farms Website" <${MAIL_FROM}>`,
     replyTo: email,
     to: CONTACT_EMAIL,
     bcc: ADMIN_EMAILS,
     subject: `New booking inquiry from ${name}`,
-    text: `Name: ${name}\nEmail: ${email}\nPreferred stay: ${stay || 'N/A'}\n\nMessage:\n${message}`,
+    text: `Name: ${name}\nEmail: ${email}\nPreferred stay: ${stay}\n\nMessage:\n${message}`,
     html: `
       <p><strong>Name:</strong> ${name}</p>
       <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Preferred stay:</strong> ${stay || 'N/A'}</p>
+      <p><strong>Preferred stay:</strong> ${stay}</p>
       <p><strong>Message:</strong></p>
       <p>${message.replace(/\n/g, '<br/>')}</p>
       <p><strong>Inquiry ID:</strong> ${inquiry.id}</p>
-      <p><strong>Admin Recipients:</strong> ${ADMIN_EMAILS.join(', ')}</p>
     `,
   };
 
-  const adminMail = mailData;
   const userMail = {
     from: `"Doctors Farms" <${MAIL_FROM}>`,
     to: email,
@@ -372,12 +397,12 @@ app.post('/api/send-mail', async (req, res) => {
   };
 
   try {
-    let adminInfo, userInfo;
+    let adminInfo;
+    let userInfo;
     let emailSendFailed = false;
 
     if (usingResend) {
       try {
-        console.log('   [INFO] Attempting to send admin email via Resend to:', ADMIN_EMAILS);
         adminInfo = await resendClient.emails.send({
           from: MAIL_FROM,
           to: ADMIN_EMAILS,
@@ -386,18 +411,13 @@ app.post('/api/send-mail', async (req, res) => {
           text: adminMail.text,
           html: adminMail.html,
         });
-        if (adminInfo?.error) {
-          throw new Error(adminInfo.error.message || 'Unknown Resend admin email error');
-        }
-        console.log('   ✅ [INFO] Admin email sent via Resend:', adminInfo?.data?.id || 'no-id');
+        if (adminInfo?.error) throw new Error(adminInfo.error.message || 'Unknown Resend admin email error');
       } catch (emailError) {
-        console.error('   ❌ [ERROR] Admin email failed:', emailError instanceof Error ? emailError.message : emailError);
         smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
         emailSendFailed = true;
       }
 
       try {
-        console.log('   [INFO] Attempting to send user email via Resend to:', email);
         userInfo = await resendClient.emails.send({
           from: MAIL_FROM,
           to: [email],
@@ -405,61 +425,47 @@ app.post('/api/send-mail', async (req, res) => {
           text: userMail.text,
           html: userMail.html,
         });
-        if (userInfo?.error) {
-          throw new Error(userInfo.error.message || 'Unknown Resend customer email error');
-        }
-        console.log('   ✅ [INFO] User email sent via Resend:', userInfo?.data?.id || 'no-id');
+        if (userInfo?.error) throw new Error(userInfo.error.message || 'Unknown Resend customer email error');
       } catch (emailError) {
-        console.error('   ❌ [ERROR] User email failed:', emailError instanceof Error ? emailError.message : emailError);
         smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
         emailSendFailed = true;
       }
     } else {
       try {
-        console.log('   [INFO] Attempting to send admin email to:', ADMIN_EMAILS);
         adminInfo = await transporter.sendMail(adminMail);
-        console.log('   ✅ [INFO] Admin email sent:', adminInfo.messageId);
       } catch (emailError) {
-        console.error('   ❌ [ERROR] Admin email failed:', emailError instanceof Error ? emailError.message : emailError);
         emailSendFailed = true;
       }
 
       try {
-        console.log('   [INFO] Attempting to send user email to:', email);
         userInfo = await transporter.sendMail(userMail);
-        console.log('   ✅ [INFO] User email sent:', userInfo.messageId);
       } catch (emailError) {
-        console.error('   ❌ [ERROR] User email failed:', emailError instanceof Error ? emailError.message : emailError);
         emailSendFailed = true;
       }
     }
 
-    console.log('   [INFO] Inquiry saved with ID:', inquiry.id);
-    const responseData = {
+    return res.json({
       success: true,
       message: emailSendFailed ? 'Inquiry saved. Email delivery delayed.' : 'Inquiry saved and emails sent.',
       inquiryId: inquiry.id,
       adminMessageId: adminInfo?.messageId || adminInfo?.data?.id || null,
       userMessageId: userInfo?.messageId || userInfo?.data?.id || null,
       emailStatus: emailSendFailed ? 'delayed' : 'sent',
-    };
-    console.log('   ✅ [SEND-MAIL] Response:', responseData);
-    return res.json(responseData);
+    });
   } catch (error) {
-    console.error('   ❌ [CRITICAL ERROR] Inquiry processing failed:', error instanceof Error ? error.message : error);
-    // Even if emails fail, the inquiry is already saved to inquiries.json
-    console.log('   [INFO] Sending fallback response (inquiry saved)...');
-    const fallbackResponse = {
+    return res.json({
       success: true,
       message: 'Inquiry saved successfully. Email notifications will be sent shortly.',
       inquiryId: inquiry.id,
       emailStatus: 'pending',
       note: error instanceof Error ? error.message : String(error),
-    };
-    console.log('   ✅ [FALLBACK] Response:', fallbackResponse);
-    return res.json(fallbackResponse);
+    });
   }
-});
+}
+
+// Backward compatible route + recommended route
+app.post('/api/send-mail', inquiryLimiter, submitInquiry);
+app.post('/api/inquiries', inquiryLimiter, submitInquiry);
 
 // Inquiries read/write routes
 app.get('/api/inquiries', (req, res) => {

@@ -90,7 +90,7 @@ export default function Contact() {
 
     try {
       console.log('Sending form data:', form);
-      const response = await apiFetch('/api/send-mail', {
+      const response = await apiFetch('/api/inquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
