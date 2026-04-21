@@ -134,7 +134,9 @@ export const apiFetch = async (
           error.name === 'TypeError' ||
           error.message.includes('NetworkError');
 
-        if (isNetworkFailure && attempt < urlsToTry.length - 1) {
+        const isHtmlInsteadOfJson = error.message.includes('Expected JSON from API but received');
+
+        if ((isNetworkFailure || isHtmlInsteadOfJson) && attempt < urlsToTry.length - 1) {
           lastNetworkError = error;
           continue;
         }
