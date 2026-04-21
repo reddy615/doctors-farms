@@ -8,7 +8,7 @@ const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env'), override: true });
 
 const app = express();
 
@@ -66,16 +66,12 @@ async function setupFrontendMiddleware() {
   const { createServer } = await import('vite');
   vite = await createServer({
     root: frontendRoot,
+    configFile: path.resolve(frontendRoot, 'vite.config.ts'),
     appType: 'custom',
     server: {
       middlewareMode: true,
-      hmr: {
-        port: 5000,
-      },
     },
   });
-
-  app.use(vite.middlewares);
 }
 
 // Health check endpoints - for testing backend availability
@@ -271,7 +267,7 @@ if (!usingResend && SMTP_HOST && SMTP_USER && SMTP_PASS) {
 
 // Frontend URLs for redirects (use environment variables for deployment)
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5174';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+const BACKEND_URL = process.env.BACKEND_URL || FRONTEND_URL;
 
 // PhonePe configuration (replace with your actual credentials)
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'YOUR_MERCHANT_ID';
@@ -615,10 +611,15 @@ app.use(async (req, res, next) => {
 async function start() {
   await setupFrontendMiddleware();
 
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, '0.0.0.0', () => {
+  if (!isProduction && vite) {
+    app.use(vite.middlewares);
+  }
+
+  const PORT = process.env.PORT || 5174;
+  const HOST = process.env.HOST || (isProduction ? '0.0.0.0' : '127.0.0.1');
+  app.listen(PORT, HOST, () => {
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`✅ Backend server running on port ${PORT}`);
+    console.log(`✅ Backend server running on ${HOST}:${PORT}`);
     console.log(`${'='.repeat(60)}`);
     console.log(`\n📝 Available Endpoints:`);
     console.log(`   Health Check: http://localhost:${PORT}/health`);

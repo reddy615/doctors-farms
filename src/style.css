@@ -12,7 +12,11 @@
   }
 
   a {
-    @apply text-brand-700 hover:text-brand-900;
+    color: #1F5424;
+  }
+
+  a:hover {
+    color: #133418;
   }
 
   input,
