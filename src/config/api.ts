@@ -1,13 +1,13 @@
 /**
  * API Configuration
  * 
- * CRITICAL: Always uses VITE_API_URL environment variable
+ * API base URL strategy supports both split and combined deployments.
  * 
  * Configuration Priority:
- * 1. VITE_API_URL env var (REQUIRED for production)
- * 2. Relative path to same-origin backend (development fallback)
+ * 1. VITE_API_URL env var (preferred for split frontend/backend)
+ * 2. Relative same-origin API paths (works for combined deployment)
  * 
- * ⚠️  Production deployments MUST set VITE_API_URL to backend URL
+ * ⚠️  In combined deployments, leave VITE_API_URL unset.
  * Example: VITE_API_URL=https://doctors-farms-backend.up.railway.app
  */
 
@@ -34,7 +34,7 @@ console.log(`   Base URL: ${API_BASE_URL}`);
 console.log(`   Environment: ${import.meta.env.MODE}`);
 console.log(`   VITE_API_URL env var: ${import.meta.env.VITE_API_URL ? '✅ SET' : '❌ NOT SET'}`);
 if (!import.meta.env.VITE_API_URL && import.meta.env.PROD) {
-  console.error('⚠️  WARNING: Production mode without VITE_API_URL will cause API failures!');
+  console.log('ℹ️  [API Config] Production mode without VITE_API_URL: using same-origin APIs.');
 }
 
 // Helper function to construct API endpoints with error handling
@@ -59,9 +59,10 @@ export const apiFetch = async (
   
   console.log(`[API] ${method} ${primaryUrl}`);
 
-  // Never retry to same-origin in production when a separate backend URL is configured.
-  // Doing so can return frontend HTML for /api routes, which then breaks JSON parsing.
-  const allowSameOriginFallback = import.meta.env.DEV && API_BASE_URL && API_BASE_URL !== '';
+  // Retry once with same-origin when an external API URL is configured but unreachable.
+  // This keeps combined deployments working even if VITE_API_URL points to an old backend domain.
+  const allowSameOriginFallback =
+    !!API_BASE_URL && API_BASE_URL !== '' && API_BASE_URL !== window.location.origin;
   const urlsToTry = allowSameOriginFallback ? [primaryUrl, fallbackUrl] : [primaryUrl];
 
   let lastNetworkError: Error | null = null;
@@ -148,7 +149,7 @@ export const apiFetch = async (
               `• Incorrect backend URL: ${targetForMessage}\n` +
               `• Network connectivity issue\n` +
               `• CORS policy blocking the request\n\n` +
-              `${import.meta.env.PROD ? '• In Railway, ensure VITE_API_URL points to backend service URL and redeploy\n\n' : ''}` +
+              `${import.meta.env.PROD ? '• In Railway split deployment, ensure VITE_API_URL points to backend service URL\n• In combined deployment, remove VITE_API_URL and redeploy\n\n' : ''}` +
               `Try:\n` +
               `1. Check if backend is running\n` +
               `2. Visit ${targetForMessage}/health in your browser\n` +
