@@ -22,16 +22,11 @@ export default function Home() {
   return (
     <div className="space-y-24">
       <section className="relative min-h-[72vh] px-4 py-28 text-white">
-        <video
+        <img
+          src="/hero.png"
+          alt="Doctors Farms Resort"
           className="absolute inset-0 h-full w-full object-cover"
-          poster="/hero.png"
-          autoPlay
-          muted
-          loop
-          playsInline
-        >
-          <source src="/farms-viedo.mp4" type="video/mp4" />
-        </video>
+        />
         <div className="absolute inset-0 bg-black/45" />
         <div className="relative mx-auto max-w-6xl">
           <div className="max-w-2xl">
