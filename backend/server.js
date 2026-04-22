@@ -62,26 +62,40 @@ app.options('*', cors());
 
 app.use(express.json());
 
+// Debug middleware - log all requests to understand routing
+app.use((req, res, next) => {
+  console.log(`📨 [${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 const isProduction = process.env.NODE_ENV === 'production';
 const frontendRoot = path.resolve(__dirname, '..');
 
 let vite;
 
-async function setupFrontendMiddleware() {
+// Setup static files BEFORE defining routes so routes take priority
+function setupStaticFiles() {
   if (isProduction) {
-    app.use(express.static(path.join(__dirname, '../dist')));
-    return;
+    console.log('📁 Setting up static files from dist/');
+    app.use(express.static(path.join(__dirname, '../dist'), {
+      index: false, // Don't automatically serve index.html
+      etag: false,
+    }));
   }
+}
 
-  const { createServer } = await import('vite');
-  vite = await createServer({
-    root: frontendRoot,
-    configFile: path.resolve(frontendRoot, 'vite.config.ts'),
-    appType: 'custom',
-    server: {
-      middlewareMode: true,
-    },
-  });
+async function setupFrontendMiddleware() {
+  if (!isProduction) {
+    const { createServer } = await import('vite');
+    vite = await createServer({
+      root: frontendRoot,
+      configFile: path.resolve(frontendRoot, 'vite.config.ts'),
+      appType: 'custom',
+      server: {
+        middlewareMode: true,
+      },
+    });
+  }
 }
 
 // Health check endpoints - for testing backend availability
@@ -608,42 +622,53 @@ app.post('/api/payment-callback', (req, res) => {
   res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
 });
 
-// Catch all handler: send back React's index.html file for client-side routing
-// But ONLY for page requests, never for API routes
-app.use(async (req, res, next) => {
-  try {
-    // Never serve HTML for API routes or non-GET requests
-    if (req.path.startsWith('/api') || req.method !== 'GET') {
-      return next();
-    }
-
-    // Only serve HTML for browser page requests (text/html in Accept header)
-    const acceptHeader = req.headers.accept || '';
-    if (!acceptHeader.includes('text/html')) {
-      return next();
-    }
-
-    if (isProduction) {
-      return res.sendFile(path.join(__dirname, '../dist/index.html'));
-    }
-
-    const template = fs.readFileSync(path.resolve(frontendRoot, 'index.html'), 'utf-8');
-    const html = await vite.transformIndexHtml(req.originalUrl, template);
-    return res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
-  } catch (error) {
-    if (!isProduction && vite) {
-      vite.ssrFixStacktrace(error);
-    }
-    next(error);
-  }
-});
-
 async function start() {
+  // Setup middleware in correct order:
+  // 1. API routes (defined above) are already registered
+  // 2. Setup static files for production
+  setupStaticFiles();
+  
+  // 3. Setup frontend middleware (Vite in dev, SPA fallback below in prod)
   await setupFrontendMiddleware();
 
+  // 4. Vite middleware for development
   if (!isProduction && vite) {
     app.use(vite.middlewares);
   }
+
+  // 5. SPA fallback - ALWAYS last
+  app.use(async (req, res, next) => {
+    try {
+      // Skip API routes and non-GET requests
+      if (req.path.startsWith('/api') || req.method !== 'GET') {
+        console.log(`❌ [Fallback] Skipping ${req.method} ${req.path} (not a page request)`);
+        return next();
+      }
+
+      // Only serve HTML for browser page requests
+      const acceptHeader = req.headers.accept || '';
+      if (!acceptHeader.includes('text/html')) {
+        console.log(`❌ [Fallback] Skipping ${req.path} (not requesting text/html)`);
+        return next();
+      }
+
+      console.log(`✅ [Fallback] Serving SPA for ${req.path}`);
+
+      if (isProduction) {
+        return res.sendFile(path.join(__dirname, '../dist/index.html'));
+      }
+
+      const template = fs.readFileSync(path.resolve(frontendRoot, 'index.html'), 'utf-8');
+      const html = await vite.transformIndexHtml(req.originalUrl, template);
+      return res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+    } catch (error) {
+      console.error('❌ [Fallback Error]', error.message);
+      if (!isProduction && vite) {
+        vite.ssrFixStacktrace(error);
+      }
+      next(error);
+    }
+  });
 
   const PORT = process.env.PORT || (isProduction ? 5000 : 5174);
   const HOST = process.env.HOST || '0.0.0.0';
