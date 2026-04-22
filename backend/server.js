@@ -693,4 +693,4 @@ async function start() {
 start().catch((error) => {
   console.error('Failed to start backend server:', error);
   process.exit(1);
-});
+});// Refactor trigger
