@@ -16,14 +16,22 @@ const app = express();
 
 // CORS configuration for production deployment
 const allowedOrigins = [
+  // Local development
   'http://localhost:5174',
   'http://localhost:5173',
   'http://127.0.0.1:5174',
   'http://127.0.0.1:5173',
   'http://localhost:5000',
   'http://127.0.0.1:5000',
+  // Environment-based
   process.env.FRONTEND_URL || 'http://localhost:5174',
+  // Railway production domains
   process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null,
+  process.env.FRONTEND_DOMAIN ? `https://${process.env.FRONTEND_DOMAIN}` : null,
+  // Common production domains
+  'https://doctors-farms-production.up.railway.app',
+  'https://www.doctorsfarms.in',
+  'https://doctorsfarms.in',
 ].filter(Boolean);
 
 console.log('✅ CORS Allowed Origins:', allowedOrigins);
