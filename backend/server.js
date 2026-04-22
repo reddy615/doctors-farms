@@ -609,12 +609,17 @@ app.post('/api/payment-callback', (req, res) => {
 });
 
 // Catch all handler: send back React's index.html file for client-side routing
+// But ONLY for page requests, never for API routes
 app.use(async (req, res, next) => {
   try {
-    const acceptHeader = req.headers.accept || '';
-    const isPageRequest = req.method === 'GET' && acceptHeader.includes('text/html') && !req.path.startsWith('/api');
+    // Never serve HTML for API routes or non-GET requests
+    if (req.path.startsWith('/api') || req.method !== 'GET') {
+      return next();
+    }
 
-    if (!isPageRequest) {
+    // Only serve HTML for browser page requests (text/html in Accept header)
+    const acceptHeader = req.headers.accept || '';
+    if (!acceptHeader.includes('text/html')) {
       return next();
     }
 
