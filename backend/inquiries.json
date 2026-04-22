@@ -265,5 +265,71 @@
     "status": "unpaid",
     "createdAt": "2026-04-21T18:47:23.985Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1776829917004_42400",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "1234567890",
+    "stay": "3 nights",
+    "message": "This is a test inquiry",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T03:51:57.004Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776829918881_24877",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "1234567890",
+    "stay": "3 nights",
+    "message": "This is a test inquiry",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T03:51:58.881Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776829968303_19712",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+91-9999999999",
+    "stay": "5 nights",
+    "message": "Please confirm room availability",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T03:52:48.303Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776829970538_35974",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+91-9999999999",
+    "stay": "5 nights",
+    "message": "Please confirm room availability",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T03:52:50.538Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776830002236_89976",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "",
+    "stay": "Not provided",
+    "message": "Test message",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T03:53:22.236Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776830017673_37006",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "",
+    "stay": "Not provided",
+    "message": "Test message",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T03:53:37.673Z",
+    "payment": null
   }
 ]
