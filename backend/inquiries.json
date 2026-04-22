@@ -122,5 +122,148 @@
     "status": "unpaid",
     "createdAt": "2026-04-18T10:08:29.454Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1776796314685_85366",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "",
+    "stay": "Not provided",
+    "message": "testing inquiry",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:31:54.685Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776796940442_80352",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:42:20.442Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776796944794_25589",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:42:24.794Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776796959649_97815",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:42:39.649Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776796962122_73952",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:42:42.122Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776796970142_81260",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:42:50.143Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776796982354_741",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:43:02.354Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776797069570_55087",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:44:29.570Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776797087758_77298",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "",
+    "stay": "Not provided",
+    "message": "Small test.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:44:47.758Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776797212736_51758",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:46:52.736Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776797219407_40869",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:46:59.407Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776797223852_16810",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:47:03.852Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776797243985_99164",
+    "name": "Runtime Test",
+    "email": "runtime.test@example.com",
+    "phone": "9999999999",
+    "stay": "2026-05-01 to 2026-05-03",
+    "message": "Testing live inquiry flow from automation.",
+    "status": "unpaid",
+    "createdAt": "2026-04-21T18:47:23.985Z",
+    "payment": null
   }
 ]
