@@ -269,14 +269,15 @@ export default function Contact() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Phone</label>
+                  <label className="block text-sm font-medium text-slate-700">Phone <span className="text-xs text-slate-500">(10 digits, e.g., +91 9876543210)</span></label>
                   <input
                     name="phone"
                     type="tel"
                     value={form.phone}
                     onChange={handleChange}
                     className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                    placeholder="+91 9876543210"
+                    placeholder="+91 9876543210 or 9876543210"
+                    pattern="[\d\s+]{10,}"
                   />
                 </div>
                 <div>
@@ -290,7 +291,7 @@ export default function Contact() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Message</label>
+                  <label className="block text-sm font-medium text-slate-700">Message <span className="text-xs text-slate-500">(any message)</span></label>
                   <textarea
                     name="message"
                     value={form.message}

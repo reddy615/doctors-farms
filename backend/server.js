@@ -305,9 +305,20 @@ const inquiryLimiter = rateLimit({
 const inquirySchema = z.object({
   name: z.string().min(2, 'Name is required').max(100),
   email: z.string().email('Valid email is required'),
-  phone: z.string().max(20).optional().default(''),
+  phone: z.string()
+    .refine(
+      (phone) => {
+        // Allow spaces and extract digits only
+        const digitsOnly = phone.replace(/\D/g, '');
+        // Must have exactly 10 digits, or 12 digits if includes +91
+        return digitsOnly.length === 10 || digitsOnly.length === 12;
+      },
+      'Phone must be 10 digits (e.g., 9876543210) or with country code (e.g., +91 9876543210)'
+    )
+    .optional()
+    .default(''),
   stay: z.string().max(100).optional().default('Not provided'),
-  message: z.string().min(5, 'Message is required').max(2000),
+  message: z.string().min(1, 'Message is required').max(5000),
 });
 
 function normalizeInquiryInput(body = {}) {
