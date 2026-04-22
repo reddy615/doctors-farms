@@ -111,7 +111,20 @@ export default function Contact() {
 
       if (!response.ok || !result.success) {
         console.error('API error - response.ok:', response.ok, 'result.success:', result.success);
-        throw new Error(result.error || 'Unable to send inquiry.');
+        
+        // Show validation errors if available
+        let errorMessage = result.error || result.message || 'Unable to send inquiry.';
+        if (result.errors) {
+          console.error('Validation errors:', result.errors);
+          // Format validation errors for display
+          const errorDetails = Object.entries(result.errors).map(([key, value]: any) => {
+            if (Array.isArray(value)) return `${key}: ${value.join(', ')}`;
+            return `${key}: ${value}`;
+          }).join('\n');
+          errorMessage = `${errorMessage}\n\nValidation errors:\n${errorDetails}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       setMailStatus('sent');
