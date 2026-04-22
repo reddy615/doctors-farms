@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getApiEndpoint } from "../config/api";
+import { apiFetch } from "../config/api";
 
 type Inquiry = {
   id: string;
@@ -25,8 +25,8 @@ export default function Admin() {
 
       try {
         const [inquiriesRes, adminsRes] = await Promise.all([
-          fetch(getApiEndpoint('/api/inquiries')),
-          fetch(getApiEndpoint('/api/admins')),
+          apiFetch('/api/inquiries', { method: 'GET' }),
+          apiFetch('/api/admins', { method: 'GET' }),
         ]);
 
         const inquiriesJson = await inquiriesRes.json().catch(() => null);

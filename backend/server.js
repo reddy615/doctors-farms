@@ -424,34 +424,77 @@ Doctors Farms`,
     let emailSendFailed = false;
 
     if (usingResend) {
+      // Try primary sender, fall back to contact email if domain not verified
+      const trySendEmail = async (emailData, recipientType) => {
+        let lastError = null;
+        
+        // Attempt 1: Use configured MAIL_FROM
+        try {
+          console.log(`📧 [RESEND] Attempting to send ${recipientType} email from ${MAIL_FROM}`);
+          const result = await resendClient.emails.send({
+            from: MAIL_FROM,
+            ...emailData,
+          });
+          
+          if (result?.error) {
+            lastError = result.error.message || 'Unknown Resend error';
+            console.error(`❌ [RESEND] ${recipientType} email failed with MAIL_FROM: ${lastError}`);
+          } else if (result?.id) {
+            console.log(`✅ [RESEND] ${recipientType} email sent successfully. ID: ${result.id}`);
+            return result;
+          }
+        } catch (err) {
+          lastError = err instanceof Error ? err.message : String(err);
+          console.error(`❌ [RESEND] ${recipientType} email error with MAIL_FROM: ${lastError}`);
+        }
+        
+        // Attempt 2: Fall back to CONTACT_EMAIL if MAIL_FROM failed
+        if (lastError && MAIL_FROM !== CONTACT_EMAIL) {
+          try {
+            console.log(`📧 [RESEND] Retrying ${recipientType} email from fallback: ${CONTACT_EMAIL}`);
+            const result = await resendClient.emails.send({
+              from: CONTACT_EMAIL,
+              ...emailData,
+            });
+            
+            if (result?.error) {
+              lastError = result.error.message || 'Unknown Resend error';
+              console.error(`❌ [RESEND] ${recipientType} email failed with fallback: ${lastError}`);
+            } else if (result?.id) {
+              console.log(`✅ [RESEND] ${recipientType} email sent with fallback. ID: ${result.id}`);
+              return result;
+            }
+          } catch (err) {
+            lastError = err instanceof Error ? err.message : String(err);
+            console.error(`❌ [RESEND] ${recipientType} email error with fallback: ${lastError}`);
+          }
+        }
+        
+        throw new Error(lastError || `Failed to send ${recipientType} email`);
+      };
+
+      // Send admin email
       try {
-        adminInfo = await resendClient.emails.send({
-          from: MAIL_FROM,
+        adminInfo = await trySendEmail({
           to: ADMIN_EMAILS,
           replyTo: email,
           subject: adminMail.subject,
           text: adminMail.text,
           html: adminMail.html,
-        });
-        if (adminInfo?.error) {
-          throw new Error(adminInfo.error.message || 'Unknown Resend admin email error');
-        }
+        }, 'admin');
       } catch (emailError) {
         smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
         emailSendFailed = true;
       }
 
+      // Send user email
       try {
-        userInfo = await resendClient.emails.send({
-          from: MAIL_FROM,
+        userInfo = await trySendEmail({
           to: [email],
           subject: userMail.subject,
           text: userMail.text,
           html: userMail.html,
-        });
-        if (userInfo?.error) {
-          throw new Error(userInfo.error.message || 'Unknown Resend customer email error');
-        }
+        }, 'user');
       } catch (emailError) {
         smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
         emailSendFailed = true;

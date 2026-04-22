@@ -754,5 +754,71 @@
     "status": "unpaid",
     "createdAt": "2026-04-22T04:57:48.843Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1776833981787_41668",
+    "name": "AKSHAY POLAREDDY",
+    "email": "polareddyakshayreddy@gmail.com",
+    "phone": "+91 9955575969",
+    "stay": "3 nights",
+    "message": "hi",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T04:59:41.787Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776834062840_97737",
+    "name": "Akshayreddy polareddy",
+    "email": "polareddyakshayreddy@gmail.com",
+    "phone": "9955575969",
+    "stay": "3 nights",
+    "message": "hi i want to saty\n",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T05:01:02.840Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776834955663_52064",
+    "name": "AKSHAY POLAREDDY",
+    "email": "2300090002@kluniversity.in",
+    "phone": "9955575969",
+    "stay": "3 nights",
+    "message": "hi",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T05:15:55.663Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776834985093_43795",
+    "name": "Akshayreddy polareddy",
+    "email": "polareddyakshayreddy@gmail.com",
+    "phone": "9955575969",
+    "stay": "3 nights",
+    "message": "hi",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T05:16:25.093Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776853508014_14953",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "9999999999",
+    "stay": "5 days",
+    "message": "This is a test inquiry",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T10:25:08.014Z",
+    "payment": null
+  },
+  {
+    "id": "INQ_1776853568943_17731",
+    "name": "Test User 2",
+    "email": "test@example.com",
+    "phone": "9999999999",
+    "stay": "3 days",
+    "message": "Test inquiry with new email logic",
+    "status": "unpaid",
+    "createdAt": "2026-04-22T10:26:08.943Z",
+    "payment": null
   }
 ]
