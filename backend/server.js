@@ -14,21 +14,23 @@ dotenv.config({ path: path.join(__dirname, '.env'), override: true });
 
 const app = express();
 
-// CORS configuration for production deployment
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+const isProduction = process.env.NODE_ENV === 'production';
+const frontendRoot = path.resolve(__dirname, '..');
+
+let vite;
+
+/* ----------------------------- CORS CONFIG ----------------------------- */
+
 const allowedOrigins = [
-  // Local development
-  'http://localhost:5174',
   'http://localhost:5173',
-  'http://127.0.0.1:5174',
   'http://127.0.0.1:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5174',
   'http://localhost:5000',
   'http://127.0.0.1:5000',
-  // Environment-based
-  process.env.FRONTEND_URL || 'http://localhost:5174',
-  // Railway production domains
-  process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null,
-  process.env.FRONTEND_DOMAIN ? `https://${process.env.FRONTEND_DOMAIN}` : null,
-  // Common production domains
+  FRONTEND_URL,
   'https://doctors-farms-production.up.railway.app',
   'https://www.doctorsfarms.in',
   'https://doctorsfarms.in',
@@ -36,51 +38,53 @@ const allowedOrigins = [
 
 console.log('✅ CORS Allowed Origins:', allowedOrigins);
 
-// CORS configuration
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      // Log but don't block - for debugging
-      console.warn(`⚠️  CORS: Origin not in whitelist: ${origin}`);
-      // Temporarily allow for testing - comment out restrictive line below
-      callback(null, true); // Allow all origins for now
-      // callback(new Error(`CORS policy: origin ${origin} not allowed`));
-    }
-  },
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn(`⚠️ CORS blocked origin: ${origin}`);
+      return callback(new Error(`CORS policy: origin ${origin} not allowed`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Length', 'X-JSON-Response-Size'],
+    maxAge: 86400,
+  })
+);
+
+app.options('*', cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Preflight requests
-app.options('*', cors());
-
 app.use(express.json());
 
-// Debug middleware - log all requests to understand routing
+/* ----------------------------- LOGGING ----------------------------- */
+
 app.use((req, res, next) => {
   console.log(`📨 [${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log(`   Origin: ${req.get('origin') || 'no origin'}`);
   next();
 });
 
-const isProduction = process.env.NODE_ENV === 'production';
-const frontendRoot = path.resolve(__dirname, '..');
+/* ----------------------------- STATIC / VITE ----------------------------- */
 
-let vite;
-
-// Setup static files BEFORE defining routes so routes take priority
 function setupStaticFiles() {
   if (isProduction) {
     console.log('📁 Setting up static files from dist/');
-    app.use(express.static(path.join(__dirname, '../dist'), {
-      index: false, // Don't automatically serve index.html
-      etag: false,
-    }));
+    app.use(
+      express.static(path.join(__dirname, '../dist'), {
+        index: false,
+        etag: false,
+      })
+    );
   }
 }
 
@@ -98,10 +102,11 @@ async function setupFrontendMiddleware() {
   }
 }
 
-// Health check endpoints - for testing backend availability
+/* ----------------------------- HEALTH ROUTES ----------------------------- */
+
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Backend is alive',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -109,15 +114,17 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'API Backend is alive and responding',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     endpoints: [
       'GET /health',
       'GET /api/health',
+      'GET /api/health/mail',
       'POST /api/send-mail',
+      'POST /api/inquiries',
       'GET /api/inquiries',
       'GET /api/admins',
       'POST /api/create-payment',
@@ -126,74 +133,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Mail health endpoint for frontend precheck UI
-app.get('/api/health/mail', (req, res) => {
-  const configured = usingResend ? !!resendClient : !!transporter;
-  const healthy = usingResend ? !!resendClient : (!!transporter && smtpVerified);
-
-  res.status(healthy ? 200 : 503).json({
-    success: healthy,
-    backendReachable: true,
-    provider: MAIL_PROVIDER,
-    smtpConfigured: configured,
-    smtpVerified: healthy,
-    message: healthy
-      ? 'Mail service is ready.'
-      : smtpLastError
-        ? `Mail service unavailable: ${smtpLastError}`
-        : 'Mail service is not configured or not verified.',
-  });
-});
-
-// Debug endpoint - shows CORS info
-app.get('/api/debug/cors', (req, res) => {
-  res.json({
-    origin: req.get('origin'),
-    method: req.method,
-    cors_allowed_origins: allowedOrigins,
-    frontend_url: process.env.FRONTEND_URL || 'http://localhost:5174',
-    backend_url: process.env.BACKEND_URL || 'http://localhost:5000',
-    request_headers: req.headers,
-  });
-});
-
-// Debug endpoint - shows current configuration
-app.get('/api/debug/config', (req, res) => {
-  res.json({
-    frontend_url: FRONTEND_URL,
-    backend_url: BACKEND_URL,
-    phonepe_env: process.env.PHONEPE_ENV || 'production',
-    smtp_configured: usingResend ? !!resendClient : !!transporter,
-    mail_provider: MAIL_PROVIDER,
-    smtp_user: SMTP_USER ? SMTP_USER.substring(0, 3) + '***' : 'not configured',
-    admin_emails: ADMIN_EMAILS,
-    environment: process.env.NODE_ENV || 'development',
-    // Enhanced SMTP debugging
-    smtp_debug: {
-      smtp_host: process.env.SMTP_HOST || '❌ NOT SET - check Railway variables',
-      smtp_port: process.env.SMTP_PORT || 'NOT SET (default: 587)',
-      smtp_user: process.env.SMTP_USER ? '✅ SET (hidden)' : '❌ NOT SET',
-      smtp_pass: process.env.SMTP_PASS ? '✅ SET (hidden)' : '❌ NOT SET',
-      resend_api_key: process.env.RESEND_API_KEY ? '✅ SET (hidden)' : '❌ NOT SET',
-      smtp_secure: process.env.SMTP_SECURE || 'false (default)',
-      transporter_status: usingResend
-        ? (resendClient ? '✅ RESEND CLIENT READY' : '❌ RESEND NOT CONFIGURED')
-        : (transporter ? (smtpVerified ? '✅ VERIFIED - emails can be sent' : '⚠️ CREATED BUT NOT VERIFIED - check credentials') : '❌ NOT CONFIGURED - emails will fail'),
-      smtp_verified: usingResend ? !!resendClient : smtpVerified,
-      last_smtp_error: smtpLastError,
-      fix_if_failing: 'Add SMTP_HOST, SMTP_USER, SMTP_PASS to Railway Backend variables and redeploy',
-    },
-    // API endpoint status
-    endpoint_status: {
-      health: '✅ available',
-      send_mail: usingResend
-        ? (resendClient ? '✅ available' : '❌ disabled (Resend not configured)')
-        : (transporter && smtpVerified ? '✅ available' : '❌ disabled (SMTP not verified)'),
-      inquiries: '✅ available',
-      create_payment: '✅ available',
-    },
-  });
-});
+/* ----------------------------- INQUIRY STORAGE ----------------------------- */
 
 const INQUIRIES_FILE = path.join(__dirname, 'inquiries.json');
 
@@ -202,8 +142,7 @@ function readInquiries() {
     if (!fs.existsSync(INQUIRIES_FILE)) {
       fs.writeFileSync(INQUIRIES_FILE, '[]', 'utf-8');
     }
-    const data = fs.readFileSync(INQUIRIES_FILE, 'utf-8');
-    return JSON.parse(data);
+    return JSON.parse(fs.readFileSync(INQUIRIES_FILE, 'utf-8'));
   } catch (err) {
     console.error('Error reading inquiries file:', err);
     return [];
@@ -218,14 +157,17 @@ function writeInquiries(inquiries) {
   }
 }
 
-// Email configuration
+/* ----------------------------- MAIL CONFIG ----------------------------- */
+
 const MAIL_PROVIDER = (process.env.MAIL_PROVIDER || 'custom').toLowerCase();
+
 const MAIL_PRESETS = {
   gmail: { host: 'smtp.gmail.com', port: 587, secure: false },
   brevo: { host: 'smtp-relay.brevo.com', port: 587, secure: false },
   resend: null,
   custom: null,
 };
+
 const MAIL_PRESET = MAIL_PRESETS[MAIL_PROVIDER] || MAIL_PRESETS.custom;
 
 const SMTP_HOST = process.env.SMTP_HOST || MAIL_PRESET?.host || 'smtp.gmail.com';
@@ -237,8 +179,6 @@ const SMTP_PASS = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'doctorsfarms686@gmail.com';
 const MAIL_FROM = process.env.MAIL_FROM || SMTP_USER || CONTACT_EMAIL;
-
-// ADMIN_LIST can be comma-separated values, e.g. ADMIN_LIST=admin1@example.com,admin2@example.com
 const ADMIN_LIST = process.env.ADMIN_LIST || CONTACT_EMAIL;
 const ADMIN_EMAILS = ADMIN_LIST.split(',').map((item) => item.trim()).filter(Boolean);
 
@@ -259,8 +199,7 @@ if (!usingResend && SMTP_HOST && SMTP_USER && SMTP_PASS) {
     },
   });
 
-  // Verify transporter configuration
-  transporter.verify((error, success) => {
+  transporter.verify((error) => {
     if (error) {
       smtpVerified = false;
       smtpLastError = error instanceof Error ? error.message : String(error);
@@ -279,39 +218,77 @@ if (!usingResend && SMTP_HOST && SMTP_USER && SMTP_PASS) {
     console.log('✅ Resend client configured');
   } else {
     smtpLastError = 'RESEND_API_KEY is missing while MAIL_PROVIDER=resend.';
-    console.warn('⚠️  Resend configuration incomplete: RESEND_API_KEY missing');
+    console.warn('⚠️ Resend configuration incomplete: RESEND_API_KEY missing');
   }
   console.log('✅ MAIL_PROVIDER:', MAIL_PROVIDER);
 } else {
-  console.warn('⚠️  SMTP configuration incomplete:');
-  console.warn('   SMTP_HOST:', SMTP_HOST ? '✓' : '✗');
-  console.warn('   SMTP_USER:', SMTP_USER ? '✓' : '✗');
-  console.warn('   SMTP_PASS:', SMTP_PASS ? '✓ (hidden)' : '✗');
+  console.warn('⚠️ SMTP configuration incomplete');
 }
 
-// Frontend URLs for redirects (use environment variables for deployment)
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5174';
-const BACKEND_URL = process.env.BACKEND_URL || FRONTEND_URL;
+/* ----------------------------- MAIL HEALTH ----------------------------- */
 
-// PhonePe configuration (replace with your actual credentials)
-const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'YOUR_MERCHANT_ID';
-const SALT_KEY = process.env.PHONEPE_SALT_KEY || 'YOUR_SALT_KEY';
-const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1');
-const PHONEPE_BASE_URL = process.env.PHONEPE_ENV === 'sandbox' 
-  ? 'https://api-sandbox.phonepe.com/apis/hermes'
-  : 'https://api.phonepe.com/apis/hermes';
+app.get('/api/health/mail', (req, res) => {
+  const configured = usingResend ? !!resendClient : !!transporter;
+  const healthy = usingResend ? !!resendClient : !!transporter && smtpVerified;
 
-console.log(`✅ Frontend URL: ${FRONTEND_URL}`);
-console.log(`✅ Backend URL: ${BACKEND_URL}`);
-console.log(`✅ PhonePe Environment: ${process.env.PHONEPE_ENV || 'production'}`);
-
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log(`  Origin: ${req.get('origin') || 'no origin'}`);
-  console.log(`  IP: ${req.ip}`);
-  next();
+  res.status(healthy ? 200 : 503).json({
+    success: healthy,
+    backendReachable: true,
+    provider: MAIL_PROVIDER,
+    smtpConfigured: configured,
+    smtpVerified: healthy,
+    message: healthy
+      ? 'Mail service is ready.'
+      : smtpLastError
+        ? `Mail service unavailable: ${smtpLastError}`
+        : 'Mail service is not configured or not verified.',
+  });
 });
+
+app.get('/api/debug/cors', (req, res) => {
+  res.json({
+    origin: req.get('origin'),
+    method: req.method,
+    cors_allowed_origins: allowedOrigins,
+    frontend_url: FRONTEND_URL,
+    backend_url: BACKEND_URL,
+    request_headers: req.headers,
+  });
+});
+
+app.get('/api/debug/config', (req, res) => {
+  res.json({
+    frontend_url: FRONTEND_URL,
+    backend_url: BACKEND_URL,
+    phonepe_env: process.env.PHONEPE_ENV || 'production',
+    smtp_configured: usingResend ? !!resendClient : !!transporter,
+    mail_provider: MAIL_PROVIDER,
+    smtp_user: SMTP_USER ? SMTP_USER.substring(0, 3) + '***' : 'not configured',
+    admin_emails: ADMIN_EMAILS,
+    environment: process.env.NODE_ENV || 'development',
+    smtp_debug: {
+      smtp_host: process.env.SMTP_HOST || 'NOT SET',
+      smtp_port: process.env.SMTP_PORT || 'NOT SET (default: 587)',
+      smtp_user: process.env.SMTP_USER ? 'SET' : 'NOT SET',
+      smtp_pass: process.env.SMTP_PASS ? 'SET' : 'NOT SET',
+      resend_api_key: process.env.RESEND_API_KEY ? 'SET' : 'NOT SET',
+      smtp_secure: process.env.SMTP_SECURE || 'false (default)',
+      transporter_status: usingResend
+        ? resendClient
+          ? 'RESEND CLIENT READY'
+          : 'RESEND NOT CONFIGURED'
+        : transporter
+          ? smtpVerified
+            ? 'VERIFIED'
+            : 'CREATED BUT NOT VERIFIED'
+          : 'NOT CONFIGURED',
+      smtp_verified: usingResend ? !!resendClient : smtpVerified,
+      last_smtp_error: smtpLastError,
+    },
+  });
+});
+
+/* ----------------------------- LIMITER + VALIDATION ----------------------------- */
 
 const inquiryLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -327,16 +304,12 @@ const inquiryLimiter = rateLimit({
 const inquirySchema = z.object({
   name: z.string().min(2, 'Name is required').max(100),
   email: z.string().email('Valid email is required'),
-  phone: z.string()
-    .refine(
-      (phone) => {
-        // Allow spaces and extract digits only
-        const digitsOnly = phone.replace(/\D/g, '');
-        // Must have exactly 10 digits, or 12 digits if includes +91
-        return digitsOnly.length === 10 || digitsOnly.length === 12;
-      },
-      'Phone must be 10 digits (e.g., 9876543210) or with country code (e.g., +91 9876543210)'
-    )
+  phone: z
+    .string()
+    .refine((phone) => {
+      const digitsOnly = phone.replace(/\D/g, '');
+      return digitsOnly.length === 0 || digitsOnly.length === 10 || digitsOnly.length === 12;
+    }, 'Phone must be 10 digits or include country code')
     .optional()
     .default(''),
   stay: z.string().max(100).optional().default('Not provided'),
@@ -353,6 +326,8 @@ function normalizeInquiryInput(body = {}) {
   };
 }
 
+/* ----------------------------- INQUIRY HANDLER ----------------------------- */
+
 async function submitInquiry(req, res) {
   console.log('📧 [INQUIRY] Request received');
 
@@ -366,6 +341,7 @@ async function submitInquiry(req, res) {
   }
 
   const { name, email, phone, stay, message } = parsed.data;
+
   const inquiry = {
     id: `INQ_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
     name,
@@ -382,7 +358,7 @@ async function submitInquiry(req, res) {
   inquiries.push(inquiry);
   writeInquiries(inquiries);
 
-  const canSendMail = usingResend ? !!resendClient : (!!transporter && smtpVerified);
+  const canSendMail = usingResend ? !!resendClient : !!transporter && smtpVerified;
 
   if (!canSendMail) {
     return res.json({
@@ -400,10 +376,11 @@ async function submitInquiry(req, res) {
     to: CONTACT_EMAIL,
     bcc: ADMIN_EMAILS,
     subject: `New booking inquiry from ${name}`,
-    text: `Name: ${name}\nEmail: ${email}\nPreferred stay: ${stay}\n\nMessage:\n${message}`,
+    text: `Name: ${name}\nEmail: ${email}\nPreferred stay: ${stay}\nPhone: ${phone}\n\nMessage:\n${message}`,
     html: `
       <p><strong>Name:</strong> ${name}</p>
       <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
       <p><strong>Preferred stay:</strong> ${stay}</p>
       <p><strong>Message:</strong></p>
       <p>${message.replace(/\n/g, '<br/>')}</p>
@@ -415,7 +392,18 @@ async function submitInquiry(req, res) {
     from: `"Doctors Farms" <${MAIL_FROM}>`,
     to: email,
     subject: `Your booking inquiry ${inquiry.id} received`,
-    text: `Hi ${name},\n\nThanks for your inquiry. We received your request and will get back shortly.\n\nInquiry ID: ${inquiry.id}\nStay: ${inquiry.stay}\nMessage:\n${inquiry.message}\n\nRegards,\nDoctors Farms`,
+    text: `Hi ${name},
+
+Thanks for your inquiry. We received your request and will get back shortly.
+
+Inquiry ID: ${inquiry.id}
+Stay: ${inquiry.stay}
+Phone: ${phone || 'Not provided'}
+Message:
+${inquiry.message}
+
+Regards,
+Doctors Farms`,
     html: `
       <div style="font-family: Arial, sans-serif; color: #1f2937; line-height:1.6;">
         <h2>Booking Inquiry Received</h2>
@@ -423,6 +411,7 @@ async function submitInquiry(req, res) {
         <p>Thank you for reaching out. Your inquiry has been received and we will contact you soon.</p>
         <p><strong>Inquiry ID:</strong> ${inquiry.id}</p>
         <p><strong>Stay:</strong> ${inquiry.stay}</p>
+        <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
         <p><strong>Message:</strong><br>${inquiry.message.replace(/\n/g, '<br>')}</p>
         <p>Best regards,<br>Doctors Farms Team</p>
       </div>
@@ -430,8 +419,8 @@ async function submitInquiry(req, res) {
   };
 
   try {
-    let adminInfo;
-    let userInfo;
+    let adminInfo = null;
+    let userInfo = null;
     let emailSendFailed = false;
 
     if (usingResend) {
@@ -444,7 +433,9 @@ async function submitInquiry(req, res) {
           text: adminMail.text,
           html: adminMail.html,
         });
-        if (adminInfo?.error) throw new Error(adminInfo.error.message || 'Unknown Resend admin email error');
+        if (adminInfo?.error) {
+          throw new Error(adminInfo.error.message || 'Unknown Resend admin email error');
+        }
       } catch (emailError) {
         smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
         emailSendFailed = true;
@@ -458,7 +449,9 @@ async function submitInquiry(req, res) {
           text: userMail.text,
           html: userMail.html,
         });
-        if (userInfo?.error) throw new Error(userInfo.error.message || 'Unknown Resend customer email error');
+        if (userInfo?.error) {
+          throw new Error(userInfo.error.message || 'Unknown Resend customer email error');
+        }
       } catch (emailError) {
         smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
         emailSendFailed = true;
@@ -467,12 +460,14 @@ async function submitInquiry(req, res) {
       try {
         adminInfo = await transporter.sendMail(adminMail);
       } catch (emailError) {
+        console.error('Admin mail failed:', emailError);
         emailSendFailed = true;
       }
 
       try {
         userInfo = await transporter.sendMail(userMail);
       } catch (emailError) {
+        console.error('User mail failed:', emailError);
         emailSendFailed = true;
       }
     }
@@ -496,18 +491,29 @@ async function submitInquiry(req, res) {
   }
 }
 
-// Backward compatible route + recommended route
 app.post('/api/send-mail', inquiryLimiter, submitInquiry);
 app.post('/api/inquiries', inquiryLimiter, submitInquiry);
 
-// Inquiries read/write routes
 app.get('/api/inquiries', (req, res) => {
   const status = req.query.status;
   let inquiries = readInquiries();
+
   if (status) {
     inquiries = inquiries.filter((inq) => inq.status === status);
   }
+
   res.json({ success: true, inquiries });
+});
+
+app.get('/api/inquiries/:id', (req, res) => {
+  const inquiries = readInquiries();
+  const inquiry = inquiries.find((inq) => inq.id === req.params.id);
+
+  if (!inquiry) {
+    return res.status(404).json({ success: false, error: 'Inquiry not found' });
+  }
+
+  res.json({ success: true, inquiry });
 });
 
 app.get('/api/admins', (req, res) => {
@@ -520,26 +526,27 @@ app.get('/api/admins', (req, res) => {
   res.json({ success: true, admins });
 });
 
-app.get('/api/inquiries/:id', (req, res) => {
-  const inquiries = readInquiries();
-  const inquiry = inquiries.find((inq) => inq.id === req.params.id);
-  if (!inquiry) return res.status(404).json({ success: false, error: 'Inquiry not found' });
-  res.json({ success: true, inquiry });
-});
+/* ----------------------------- PHONEPE ----------------------------- */
 
-// Generate SHA256 hash for PhonePe
+const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'YOUR_MERCHANT_ID';
+const SALT_KEY = process.env.PHONEPE_SALT_KEY || 'YOUR_SALT_KEY';
+const SALT_INDEX = parseInt(process.env.PHONEPE_SALT_INDEX || '1', 10);
+
+const PHONEPE_BASE_URL =
+  process.env.PHONEPE_ENV === 'sandbox'
+    ? 'https://api-sandbox.phonepe.com/apis/hermes'
+    : 'https://api.phonepe.com/apis/hermes';
+
 function generateHash(data) {
   const hashString = data + SALT_KEY;
   return crypto.createHash('sha256').update(hashString).digest('hex') + '###' + SALT_INDEX;
 }
 
-// Create payment request
 app.post('/api/create-payment', async (req, res) => {
-  const { amount, name, email, inquiryId } = req.body;
+  const { amount, inquiryId } = req.body;
 
   const inquiries = readInquiries();
   const inquiry = inquiryId ? inquiries.find((i) => i.id === inquiryId) : null;
-
   const merchantTransactionId = 'TXN_' + Date.now();
 
   if (inquiry) {
@@ -557,32 +564,34 @@ app.post('/api/create-payment', async (req, res) => {
     merchantId: MERCHANT_ID,
     merchantTransactionId,
     merchantUserId: 'USER_' + Date.now(),
-    amount: amount * 100, // Amount in paisa
+    amount: amount * 100,
     redirectUrl: `${FRONTEND_URL}/payment-success`,
     redirectMode: 'REDIRECT',
     callbackUrl: `${BACKEND_URL}/api/payment-callback`,
-    mobileNumber: '9999999999', // Optional
+    mobileNumber: '9999999999',
     paymentInstrument: {
-      type: 'PAY_PAGE'
-    }
+      type: 'PAY_PAGE',
+    },
   };
 
   const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
   const hash = generateHash(base64Payload);
 
   try {
-    const response = await axios.post(`${PHONEPE_BASE_URL}/pg/v1/pay`, {
-      request: base64Payload
-    }, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-VERIFY': hash
+    const response = await axios.post(
+      `${PHONEPE_BASE_URL}/pg/v1/pay`,
+      { request: base64Payload },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-VERIFY': hash,
+        },
       }
-    });
+    );
 
     res.json({
       success: true,
-      paymentUrl: response.data.data.instrumentResponse.redirectInfo.url
+      paymentUrl: response.data.data.instrumentResponse.redirectInfo.url,
     });
   } catch (error) {
     console.error('Payment creation failed:', error.response?.data || error.message);
@@ -590,7 +599,6 @@ app.post('/api/create-payment', async (req, res) => {
   }
 });
 
-// Payment callback handler
 app.post('/api/payment-callback', (req, res) => {
   console.log('Payment callback received:', req.body);
 
@@ -622,37 +630,26 @@ app.post('/api/payment-callback', (req, res) => {
   res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
 });
 
+/* ----------------------------- START SERVER ----------------------------- */
+
 async function start() {
-  // Setup middleware in correct order:
-  // 1. API routes (defined above) are already registered
-  // 2. Setup static files for production
   setupStaticFiles();
-  
-  // 3. Setup frontend middleware (Vite in dev, SPA fallback below in prod)
   await setupFrontendMiddleware();
 
-  // 4. Vite middleware for development
   if (!isProduction && vite) {
     app.use(vite.middlewares);
   }
 
-  // 5. SPA fallback - ALWAYS last
   app.use(async (req, res, next) => {
     try {
-      // Skip API routes and non-GET requests
       if (req.path.startsWith('/api') || req.method !== 'GET') {
-        console.log(`❌ [Fallback] Skipping ${req.method} ${req.path} (not a page request)`);
         return next();
       }
 
-      // Only serve HTML for browser page requests
       const acceptHeader = req.headers.accept || '';
       if (!acceptHeader.includes('text/html')) {
-        console.log(`❌ [Fallback] Skipping ${req.path} (not requesting text/html)`);
         return next();
       }
-
-      console.log(`✅ [Fallback] Serving SPA for ${req.path}`);
 
       if (isProduction) {
         return res.sendFile(path.join(__dirname, '../dist/index.html'));
@@ -672,25 +669,16 @@ async function start() {
 
   const PORT = process.env.PORT || (isProduction ? 5000 : 5174);
   const HOST = process.env.HOST || '0.0.0.0';
+
   app.listen(PORT, HOST, () => {
-    console.log(`\n${'='.repeat(60)}`);
     console.log(`✅ Backend server running on ${HOST}:${PORT}`);
-    console.log(`${'='.repeat(60)}`);
-    console.log(`\n📝 Available Endpoints:`);
-    console.log(`   Health Check: http://localhost:${PORT}/health`);
-    console.log(`   API Health: http://localhost:${PORT}/api/health`);
-    console.log(`   Debug CORS: http://localhost:${PORT}/api/debug/cors`);
-    console.log(`   Debug Config: http://localhost:${PORT}/api/debug/config`);
-    console.log(`   Send Mail: POST http://localhost:${PORT}/api/send-mail`);
-    console.log(`   Inquiries: GET http://localhost:${PORT}/api/inquiries`);
-    console.log(`   Admins: GET http://localhost:${PORT}/api/admins`);
-    console.log(`\n🌍 Allowed Origins:`);
-    allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
-    console.log(`\n${'='.repeat(60)}\n`);
+    console.log(`✅ Frontend URL: ${FRONTEND_URL}`);
+    console.log(`✅ Backend URL: ${BACKEND_URL}`);
+    console.log(`✅ PhonePe Environment: ${process.env.PHONEPE_ENV || 'production'}`);
   });
 }
 
 start().catch((error) => {
   console.error('Failed to start backend server:', error);
   process.exit(1);
-});// Refactor trigger
+});
