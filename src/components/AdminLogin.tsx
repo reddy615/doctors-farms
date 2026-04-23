@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 interface AdminLoginProps {
-  onLogin: (password: string) => void;
+  onLogin: () => void;
 }
 
 export default function AdminLogin({ onLogin }: AdminLoginProps) {
@@ -13,7 +13,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
     
     // Simple password check (change "admin123" to your desired password)
     if (password === "admin123") {
-      onLogin(password);
+      onLogin();
       setPassword("");
       setError("");
     } else {

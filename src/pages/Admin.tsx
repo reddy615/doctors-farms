@@ -30,7 +30,7 @@ export default function Admin() {
     }
   }, []);
 
-  const handleLogin = (password: string) => {
+  const handleLogin = () => {
     // Password is validated in AdminLogin component
     localStorage.setItem("adminAuth", "true");
     setIsAuthenticated(true);
@@ -86,7 +86,7 @@ export default function Admin() {
     };
 
     load();
-  }, []);
+  }, [isAuthenticated]);
 
   if (!isAuthenticated) {
     return <AdminLogin onLogin={handleLogin} />;
