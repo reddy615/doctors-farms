@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 
 const navItems = [
@@ -9,11 +9,30 @@ const navItems = [
   { label: "Dining", to: "/dining" },
   { label: "Gallery", to: "/gallery" },
   { label: "Contact", to: "/contact" },
-  { label: "Admin", to: "/admin" },
 ];
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if admin is authenticated
+    const auth = localStorage.getItem("adminAuth");
+    setIsAdminAuthenticated(auth === "true");
+
+    // Listen for storage changes (logout from other tabs)
+    const handleStorageChange = () => {
+      const auth = localStorage.getItem("adminAuth");
+      setIsAdminAuthenticated(auth === "true");
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  const displayItems = isAdminAuthenticated
+    ? [...navItems, { label: "Admin", to: "/admin" }]
+    : navItems;
 
   return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
@@ -29,7 +48,7 @@ export default function Navbar() {
         </div>
 
         <nav className="hidden gap-2 md:flex">
-          {navItems.map((item) => (
+          {displayItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -78,7 +97,7 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t border-slate-200 shadow-lg">
           <nav className="flex flex-col gap-2 p-4 max-h-96 overflow-y-auto">
-            {navItems.map((item) => (
+            {displayItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

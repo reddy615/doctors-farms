@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../config/api";
+import AdminLogin from "../components/AdminLogin";
 
 type Inquiry = {
   id: string;
@@ -13,12 +15,36 @@ type Inquiry = {
 };
 
 export default function Admin() {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [admins, setAdmins] = useState<Array<{id:string;name:string;email:string}>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Check if user is authenticated in localStorage
+    const auth = localStorage.getItem("adminAuth");
+    if (auth === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (password: string) => {
+    // Password is validated in AdminLogin component
+    localStorage.setItem("adminAuth", "true");
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminAuth");
+    setIsAuthenticated(false);
+    navigate("/");
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
     const load = async () => {
       setLoading(true);
       setError("");
@@ -62,9 +88,21 @@ export default function Admin() {
     load();
   }, []);
 
+  if (!isAuthenticated) {
+    return <AdminLogin onLogin={handleLogin} />;
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
-      <h1 className="text-4xl font-semibold text-slate-900">Admin: Booking Inquiries</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-semibold text-slate-900">Admin: Booking Inquiries</h1>
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg transition"
+        >
+          Logout
+        </button>
+      </div>
 
       {loading && <div className="mt-6 text-sm text-blue-700">Loading inquiries...</div>}
       {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">{error}</div>}
