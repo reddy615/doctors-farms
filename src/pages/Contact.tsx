@@ -44,7 +44,7 @@ const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; na
         onClick={handlePayment}
         className="inline-flex w-full items-center justify-center rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-brand-500/30 transition hover:bg-brand-700 disabled:opacity-50"
       >
-        {`Pay ${formatINR(amount)} with PhonePe`}
+        Pay
       </button>
 
       {showQr && (
