@@ -5,8 +5,13 @@ import { formatINR, rooms } from "../data/rooms";
 
 const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; name: string; email: string; amount: number }) => {
   const [processing, setProcessing] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   const handlePayment = async () => {
+    setShowQr(true);
+  };
+
+  const handleOnlinePayment = async () => {
     setProcessing(true);
     try {
       const response = await apiFetch('/api/create-payment', {
@@ -37,11 +42,30 @@ const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; na
     <div className="mt-6">
       <button
         onClick={handlePayment}
-        disabled={processing}
         className="inline-flex w-full items-center justify-center rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-brand-500/30 transition hover:bg-brand-700 disabled:opacity-50"
       >
-        {processing ? "Processing..." : `Pay with PhonePe ${formatINR(amount)}`}
+        {`Pay ${formatINR(amount)} with PhonePe`}
       </button>
+
+      {showQr && (
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-sm font-medium text-slate-900">Scan QR to pay {formatINR(amount)}</p>
+          <p className="mt-1 text-xs text-slate-600">After payment, share your transaction screenshot on WhatsApp for quick confirmation.</p>
+          <img
+            src="/phonepe-qr.png"
+            alt="PhonePe payment QR code"
+            className="mt-4 w-full max-w-xs rounded-xl border border-slate-200"
+            loading="lazy"
+          />
+          <button
+            onClick={handleOnlinePayment}
+            disabled={processing}
+            className="mt-4 inline-flex w-full items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            {processing ? "Processing..." : "Or continue with PhonePe checkout"}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
