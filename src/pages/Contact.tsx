@@ -294,7 +294,7 @@ export default function Contact() {
                     <p className="mt-2">{form.roomType}: {formatINR(selectedRoomPrice)} / night</p>
                   )}
                 </div>
-                <PaymentForm inquiryId={inquiryId} name={form.name} email={form.email} amount={selectedRoomPrice || 20000} />
+                <PaymentForm inquiryId={inquiryId} name={form.name} email={form.email} amount={selectedRoomPrice || rooms[0]?.pricePerNight || 0} />
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="mt-6 space-y-5">
