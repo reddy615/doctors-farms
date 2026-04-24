@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../config/api";
+import { formatINR, rooms } from "../data/rooms";
 
-const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: string; email: string }) => {
+const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; name: string; email: string; amount: number }) => {
   const [processing, setProcessing] = useState(false);
 
   const handlePayment = async () => {
@@ -11,7 +13,7 @@ const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: stri
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: 20000, // ₹20,000
+          amount,
           name,
           email,
           inquiryId,
@@ -38,14 +40,15 @@ const PaymentForm = ({ inquiryId, name, email }: { inquiryId: string; name: stri
         disabled={processing}
         className="inline-flex w-full items-center justify-center rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-brand-500/30 transition hover:bg-brand-700 disabled:opacity-50"
       >
-        {processing ? "Processing..." : "Pay with PhonePe ₹20,000"}
+        {processing ? "Processing..." : `Pay with PhonePe ${formatINR(amount)}`}
       </button>
     </div>
   );
 };
 
 export default function Contact() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "" });
+  const [searchParams] = useSearchParams();
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "", roomType: "" });
   const [submitted, setSubmitted] = useState(false);
   const [inquiryId, setInquiryId] = useState('');
   const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'pending'>('idle');
@@ -56,6 +59,7 @@ export default function Contact() {
     healthy: boolean;
     message: string;
   }>({ checked: false, healthy: true, message: '' });
+  const [selectedRoomPrice, setSelectedRoomPrice] = useState(0);
 
   useEffect(() => {
     const checkMailHealth = async () => {
@@ -79,9 +83,27 @@ export default function Contact() {
     checkMailHealth();
   }, []);
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   };
+
+  useEffect(() => {
+    const selectedRoom = rooms.find((room) => room.name === form.roomType);
+    setSelectedRoomPrice(selectedRoom?.pricePerNight ?? 0);
+  }, [form.roomType]);
+
+  useEffect(() => {
+    const roomTypeFromQuery = searchParams.get('roomType');
+    if (!roomTypeFromQuery) return;
+
+    const roomExists = rooms.some((room) => room.name === roomTypeFromQuery);
+    if (!roomExists) return;
+
+    setForm((prev) => ({
+      ...prev,
+      roomType: prev.roomType || roomTypeFromQuery,
+    }));
+  }, [searchParams]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -93,7 +115,11 @@ export default function Contact() {
       const response = await apiFetch('/api/inquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          roomPrice: selectedRoomPrice,
+          pricePerNight: selectedRoomPrice ? `${formatINR(selectedRoomPrice)} / night` : '',
+        }),
       });
 
       console.log('Response status:', response.status);
@@ -240,8 +266,11 @@ export default function Contact() {
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-sm text-blue-900">
                   <p className="font-medium">Next Step: Complete Payment</p>
                   <p className="mt-2">Please proceed with payment to confirm your booking reservation.</p>
+                  {form.roomType && selectedRoomPrice > 0 && (
+                    <p className="mt-2">{form.roomType}: {formatINR(selectedRoomPrice)} / night</p>
+                  )}
                 </div>
-                <PaymentForm inquiryId={inquiryId} name={form.name} email={form.email} />
+                <PaymentForm inquiryId={inquiryId} name={form.name} email={form.email} amount={selectedRoomPrice || 20000} />
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="mt-6 space-y-5">
@@ -279,6 +308,26 @@ export default function Contact() {
                     placeholder="+91 9876543210 or 9876543210"
                     pattern="[\d\s+]{10,}"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Room type</label>
+                  <select
+                    name="roomType"
+                    value={form.roomType}
+                    onChange={handleChange}
+                    required
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                  >
+                    <option value="">Select a room</option>
+                    {rooms.map((room) => (
+                      <option key={room.name} value={room.name}>
+                        {room.name} - {formatINR(room.pricePerNight)} / night
+                      </option>
+                    ))}
+                  </select>
+                  {selectedRoomPrice > 0 && (
+                    <p className="mt-2 text-xs text-brand-700">Selected room price: {formatINR(selectedRoomPrice)} / night</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">Preferred stay</label>

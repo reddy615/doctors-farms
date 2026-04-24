@@ -7,6 +7,8 @@ type Inquiry = {
   id: string;
   name: string;
   email: string;
+  roomType?: string;
+  pricePerNight?: string;
   stay: string;
   message: string;
   status: string;
@@ -132,6 +134,8 @@ export default function Admin() {
                 <th className="px-4 py-3 text-left font-medium">ID</th>
                 <th className="px-4 py-3 text-left font-medium">Name</th>
                 <th className="px-4 py-3 text-left font-medium">Email</th>
+                <th className="px-4 py-3 text-left font-medium">Room type</th>
+                <th className="px-4 py-3 text-left font-medium">Price</th>
                 <th className="px-4 py-3 text-left font-medium">Stay</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-left font-medium">Created</th>
@@ -140,7 +144,7 @@ export default function Admin() {
             <tbody className="divide-y divide-slate-100 bg-white">
               {inquiries.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-4 text-slate-500" colSpan={6}>
+                  <td className="px-4 py-4 text-slate-500" colSpan={8}>
                     No inquiries found.
                   </td>
                 </tr>
@@ -150,6 +154,8 @@ export default function Admin() {
                     <td className="px-4 py-3 font-mono text-xs text-slate-600">{inquiry.id}</td>
                     <td className="px-4 py-3">{inquiry.name}</td>
                     <td className="px-4 py-3">{inquiry.email}</td>
+                    <td className="px-4 py-3">{inquiry.roomType || '-'}</td>
+                    <td className="px-4 py-3">{inquiry.pricePerNight || '-'}</td>
                     <td className="px-4 py-3">{inquiry.stay}</td>
                     <td className="px-4 py-3">
                       <span className="rounded-full px-3 py-1 text-xs font-semibold text-white "
