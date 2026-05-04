@@ -1,4 +1,4 @@
-import { formatINR, rooms } from "../data/rooms";
+import { formatINR, HERITAGE_COTTAGE_PRICE, rooms } from "../data/rooms";
 
 export default function Rooms() {
   return (
@@ -25,7 +25,9 @@ export default function Rooms() {
             <div className="p-6">
               <h2 className="text-xl font-semibold text-slate-900">{room.name}</h2>
               <p className="mt-2 text-sm text-slate-600">{room.description}</p>
-              <p className="mt-4 text-sm font-medium text-brand-700">{formatINR(room.pricePerNight)} / night</p>
+              <p className="mt-4 text-sm font-medium text-brand-700">
+                {room.name === "Heritage Cottage" ? formatINR(HERITAGE_COTTAGE_PRICE) : formatINR(room.pricePerNight)} / night
+              </p>
               <ul className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
                 {room.features.map((feature) => (
                   <li

@@ -6,12 +6,14 @@ export type Room = {
   image: string;
 };
 
+export const HERITAGE_COTTAGE_PRICE = 15000;
+
 export const rooms: Room[] = [
   {
     name: "Heritage Cottage",
     description:
       "Cozy cottage surrounded by fruit trees, with a private patio and organic breakfast included.",
-    pricePerNight: 20000,
+    pricePerNight: HERITAGE_COTTAGE_PRICE,
     features: ["Private terrace", "Natural materials", "Garden view"],
     image: "/heritage-cottage.jpg",
   },
