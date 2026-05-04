@@ -16,19 +16,44 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<Position>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragStateRef = useRef<{
+    pointerId: number | null;
+    startPointer: Position;
+    startPosition: Position;
+  }>({
+    pointerId: null,
+    startPointer: { x: 0, y: 0 },
+    startPosition: { x: 0, y: 0 },
+  });
+
+  const clampPosition = (nextPosition: Position) => {
+    const container = containerRef.current;
+    if (!container || zoom === 1) {
+      return { x: 0, y: 0 };
+    }
+
+    const maxX = (container.clientWidth * (zoom - 1)) / 2;
+    const maxY = (container.clientHeight * (zoom - 1)) / 2;
+
+    return {
+      x: Math.max(-maxX, Math.min(maxX, nextPosition.x)),
+      y: Math.max(-maxY, Math.min(maxY, nextPosition.y)),
+    };
+  };
 
   const goToPrevious = () => {
     setCurrentIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
     setZoom(1);
     setPosition({ x: 0, y: 0 });
+    setIsDragging(false);
   };
 
   const goToNext = () => {
     setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
     setZoom(1);
     setPosition({ x: 0, y: 0 });
+    setIsDragging(false);
   };
 
   const zoomIn = () => {
@@ -40,6 +65,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       const newZoom = Math.max(prev - 0.2, 1);
       if (newZoom === 1) {
         setPosition({ x: 0, y: 0 });
+        setIsDragging(false);
       }
       return newZoom;
     });
@@ -48,33 +74,40 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
   const resetZoom = () => {
     setZoom(1);
     setPosition({ x: 0, y: 0 });
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoom > 1) {
-      setIsDragging(true);
-      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || zoom === 1) return;
-
-    const newX = e.clientX - dragStart.x;
-    const newY = e.clientY - dragStart.y;
-
-    // Limit panning boundaries
-    const maxX = (containerRef.current?.offsetWidth || 0) * (zoom - 1) * 0.5;
-    const maxY = (containerRef.current?.offsetHeight || 0) * (zoom - 1) * 0.5;
-
-    setPosition({
-      x: Math.max(-maxX, Math.min(maxX, newX)),
-      y: Math.max(-maxY, Math.min(maxY, newY)),
-    });
-  };
-
-  const handleMouseUp = () => {
     setIsDragging(false);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLImageElement>) => {
+    if (zoom === 1) return;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStateRef.current = {
+      pointerId: e.pointerId,
+      startPointer: { x: e.clientX, y: e.clientY },
+      startPosition: position,
+    };
+    setIsDragging(true);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLImageElement>) => {
+    if (!isDragging || dragStateRef.current.pointerId !== e.pointerId || zoom === 1) return;
+
+    const deltaX = e.clientX - dragStateRef.current.startPointer.x;
+    const deltaY = e.clientY - dragStateRef.current.startPointer.y;
+
+    setPosition(
+      clampPosition({
+        x: dragStateRef.current.startPosition.x + deltaX,
+        y: dragStateRef.current.startPosition.y + deltaY,
+      })
+    );
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLImageElement>) => {
+    if (dragStateRef.current.pointerId === e.pointerId) {
+      dragStateRef.current.pointerId = null;
+      setIsDragging(false);
+    }
   };
 
   useEffect(() => {
@@ -108,9 +141,6 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     <div
       ref={containerRef}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90"
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
       style={{ cursor: zoom > 1 && isDragging ? 'grabbing' : zoom > 1 ? 'grab' : 'default' }}
     >
       {/* Close button */}
@@ -165,10 +195,14 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
           alt={`Gallery image ${currentIndex + 1}`}
           className="max-h-[90vh] max-w-[90vw] object-contain transition-transform duration-300 select-none"
           style={{
-            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+            transform: `translate3d(${position.x}px, ${position.y}px, 0) scale(${zoom})`,
             userSelect: 'none',
+            touchAction: 'none',
           }}
-          onMouseDown={handleMouseDown}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
           draggable={false}
         />
 
