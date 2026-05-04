@@ -11,6 +11,11 @@ interface Position {
   y: number;
 }
 
+interface Point {
+  x: number;
+  y: number;
+}
+
 export default function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [zoom, setZoom] = useState(1);
@@ -25,6 +30,14 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     pointerId: null,
     startPointer: { x: 0, y: 0 },
     startPosition: { x: 0, y: 0 },
+  });
+  const activePointersRef = useRef<Map<number, Point>>(new Map());
+  const pinchStateRef = useRef<{
+    startDistance: number;
+    startZoom: number;
+  }>({
+    startDistance: 0,
+    startZoom: 1,
   });
 
   const clampPosition = (nextPosition: Position) => {
@@ -77,10 +90,41 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     setIsDragging(false);
   };
 
+  const updatePointer = (pointerId: number, point: Point) => {
+    activePointersRef.current.set(pointerId, point);
+  };
+
+  const removePointer = (pointerId: number) => {
+    activePointersRef.current.delete(pointerId);
+  };
+
+  const getPinchDistance = (first: Point, second: Point) => {
+    return Math.hypot(second.x - first.x, second.y - first.y);
+  };
+
+  const getPinchCenter = (first: Point, second: Point) => {
+    return {
+      x: (first.x + second.x) / 2,
+      y: (first.y + second.y) / 2,
+    };
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLImageElement>) => {
     if (zoom === 1) return;
 
     e.currentTarget.setPointerCapture(e.pointerId);
+    updatePointer(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointersRef.current.size === 2) {
+      const [first, second] = Array.from(activePointersRef.current.values());
+      pinchStateRef.current = {
+        startDistance: getPinchDistance(first, second),
+        startZoom: zoom,
+      };
+      setIsDragging(false);
+      return;
+    }
+
     dragStateRef.current = {
       pointerId: e.pointerId,
       startPointer: { x: e.clientX, y: e.clientY },
@@ -90,7 +134,32 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLImageElement>) => {
-    if (!isDragging || dragStateRef.current.pointerId !== e.pointerId || zoom === 1) return;
+    if (zoom === 1) return;
+
+    updatePointer(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointersRef.current.size === 2) {
+      const [first, second] = Array.from(activePointersRef.current.values());
+      const currentDistance = getPinchDistance(first, second);
+      const distanceRatio = currentDistance / Math.max(pinchStateRef.current.startDistance, 1);
+      const nextZoom = Math.min(Math.max(pinchStateRef.current.startZoom * distanceRatio, 1), 5);
+
+      const center = getPinchCenter(first, second);
+      const container = containerRef.current;
+      const offsetX = container ? center.x - container.getBoundingClientRect().left - container.clientWidth / 2 : 0;
+      const offsetY = container ? center.y - container.getBoundingClientRect().top - container.clientHeight / 2 : 0;
+
+      setZoom(nextZoom);
+      setPosition(
+        clampPosition({
+          x: offsetX * (nextZoom - 1) / 2,
+          y: offsetY * (nextZoom - 1) / 2,
+        })
+      );
+      return;
+    }
+
+    if (!isDragging || dragStateRef.current.pointerId !== e.pointerId) return;
 
     const deltaX = e.clientX - dragStateRef.current.startPointer.x;
     const deltaY = e.clientY - dragStateRef.current.startPointer.y;
@@ -107,6 +176,15 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     if (dragStateRef.current.pointerId === e.pointerId) {
       dragStateRef.current.pointerId = null;
       setIsDragging(false);
+    }
+
+    removePointer(e.pointerId);
+
+    if (activePointersRef.current.size < 2) {
+      pinchStateRef.current = {
+        startDistance: 0,
+        startZoom: zoom,
+      };
     }
   };
 
@@ -146,7 +224,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute right-4 top-4 z-10 rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
+        className="absolute right-4 top-4 z-50 rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
         aria-label="Close"
       >
         <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,10 +233,10 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       </button>
 
       {/* Zoom controls */}
-      <div className="absolute left-4 top-4 flex flex-col gap-2">
+      <div className="absolute left-4 top-4 z-50 flex flex-col gap-2">
         <button
           onClick={zoomIn}
-          className="rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
+          className="pointer-events-auto rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
           aria-label="Zoom in"
           title="Zoom in (+ key or scroll up)"
         >
@@ -168,7 +246,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         </button>
         <button
           onClick={zoomOut}
-          className="rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
+          className="pointer-events-auto rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
           aria-label="Zoom out"
           title="Zoom out (- key or scroll down)"
         >
@@ -178,7 +256,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         </button>
         <button
           onClick={resetZoom}
-          className="rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
+          className="pointer-events-auto rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
           aria-label="Reset zoom"
           title="Reset zoom (0 key)"
         >
@@ -189,7 +267,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       </div>
 
       {/* Image container */}
-      <div className="relative flex h-full w-full items-center justify-center overflow-hidden px-4">
+      <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden px-4">
         <img
           src={images[currentIndex]}
           alt={`Gallery image ${currentIndex + 1}`}
@@ -198,6 +276,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
             transform: `translate3d(${position.x}px, ${position.y}px, 0) scale(${zoom})`,
             userSelect: 'none',
             touchAction: 'none',
+            pointerEvents: 'auto',
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -209,7 +288,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         {/* Previous button */}
         <button
           onClick={goToPrevious}
-          className="absolute left-4 rounded-full bg-white bg-opacity-20 p-3 text-white transition-all hover:bg-opacity-40"
+          className="absolute left-4 z-50 rounded-full bg-white bg-opacity-20 p-3 text-white transition-all hover:bg-opacity-40"
           aria-label="Previous image"
         >
           <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +299,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         {/* Next button */}
         <button
           onClick={goToNext}
-          className="absolute right-4 rounded-full bg-white bg-opacity-20 p-3 text-white transition-all hover:bg-opacity-40"
+          className="absolute right-4 z-50 rounded-full bg-white bg-opacity-20 p-3 text-white transition-all hover:bg-opacity-40"
           aria-label="Next image"
         >
           <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
