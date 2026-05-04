@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface ImageLightboxProps {
   images: string[];
@@ -6,30 +6,75 @@ interface ImageLightboxProps {
   onClose: () => void;
 }
 
+interface Position {
+  x: number;
+  y: number;
+}
+
 export default function ImageLightbox({ images, initialIndex, onClose }: ImageLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [zoom, setZoom] = useState(1);
+  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<Position>({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const goToPrevious = () => {
     setCurrentIndex((prevIndex) => (prevIndex === 0 ? images.length - 1 : prevIndex - 1));
     setZoom(1);
+    setPosition({ x: 0, y: 0 });
   };
 
   const goToNext = () => {
     setCurrentIndex((prevIndex) => (prevIndex === images.length - 1 ? 0 : prevIndex + 1));
     setZoom(1);
+    setPosition({ x: 0, y: 0 });
   };
 
   const zoomIn = () => {
-    setZoom((prev) => Math.min(prev + 0.2, 3));
+    setZoom((prev) => Math.min(prev + 0.2, 5));
   };
 
   const zoomOut = () => {
-    setZoom((prev) => Math.max(prev - 0.2, 1));
+    setZoom((prev) => {
+      const newZoom = Math.max(prev - 0.2, 1);
+      if (newZoom === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+      return newZoom;
+    });
   };
 
   const resetZoom = () => {
     setZoom(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoom > 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || zoom === 1) return;
+
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+
+    // Limit panning boundaries
+    const maxX = (containerRef.current?.offsetWidth || 0) * (zoom - 1) * 0.5;
+    const maxY = (containerRef.current?.offsetHeight || 0) * (zoom - 1) * 0.5;
+
+    setPosition({
+      x: Math.max(-maxX, Math.min(maxX, newX)),
+      y: Math.max(-maxY, Math.min(maxY, newY)),
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
   };
 
   useEffect(() => {
@@ -60,7 +105,14 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90">
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black bg-opacity-90"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      style={{ cursor: zoom > 1 && isDragging ? 'grabbing' : zoom > 1 ? 'grab' : 'default' }}
+    >
       {/* Close button */}
       <button
         onClick={onClose}
@@ -111,8 +163,13 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         <img
           src={images[currentIndex]}
           alt={`Gallery image ${currentIndex + 1}`}
-          className="max-h-[90vh] max-w-[90vw] object-contain transition-transform duration-300"
-          style={{ transform: `scale(${zoom})` }}
+          className="max-h-[90vh] max-w-[90vw] object-contain transition-transform duration-300 select-none"
+          style={{
+            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+            userSelect: 'none',
+          }}
+          onMouseDown={handleMouseDown}
+          draggable={false}
         />
 
         {/* Previous button */}
@@ -147,6 +204,13 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
           Zoom: {(zoom * 100).toFixed(0)}%
         </div>
       </div>
+
+      {/* Pan hint */}
+      {zoom > 1 && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-white text-opacity-40 text-sm">
+          Drag to pan
+        </div>
+      )}
     </div>
   );
 }
