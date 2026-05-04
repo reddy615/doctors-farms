@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import ImageLightbox from '../components/ImageLightbox';
+
 const galleryImages = [
   "/gallery-1.jpg",
   "/gallery-2.jpg",
@@ -10,6 +13,8 @@ const galleryImages = [
 ];
 
 export default function Gallery() {
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
       <header className="max-w-2xl">
@@ -21,7 +26,11 @@ export default function Gallery() {
 
       <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {galleryImages.map((src, index) => (
-          <div key={index} className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div
+            key={index}
+            className="cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-lg"
+            onClick={() => setSelectedImageIndex(index)}
+          >
             <img
               src={src}
               alt={`Gallery image ${index + 1}`}
@@ -31,6 +40,14 @@ export default function Gallery() {
           </div>
         ))}
       </div>
+
+      {selectedImageIndex !== null && (
+        <ImageLightbox
+          images={galleryImages}
+          initialIndex={selectedImageIndex}
+          onClose={() => setSelectedImageIndex(null)}
+        />
+      )}
     </div>
   );
 }
