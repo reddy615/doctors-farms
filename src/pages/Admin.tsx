@@ -21,6 +21,7 @@ export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [admins, setAdmins] = useState<Array<{id:string;name:string;email:string}>>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -90,6 +91,23 @@ export default function Admin() {
     load();
   }, [isAuthenticated]);
 
+  const filteredInquiries = inquiries.filter((inquiry) => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return true;
+
+    return [
+      inquiry.id,
+      inquiry.name,
+      inquiry.email,
+      inquiry.roomType || "",
+      inquiry.pricePerNight || "",
+      inquiry.stay,
+      inquiry.status,
+      inquiry.message,
+      new Date(inquiry.createdAt).toLocaleString(),
+    ].some((value) => value.toLowerCase().includes(query));
+  });
+
   if (!isAuthenticated) {
     return <AdminLogin onLogin={handleLogin} />;
   }
@@ -111,6 +129,23 @@ export default function Admin() {
 
       {!loading && !error && (
         <>
+          <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <label htmlFor="inquiry-search" className="block text-sm font-medium text-slate-700">
+              Search inquiries
+            </label>
+            <input
+              id="inquiry-search"
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by name, email, room type, status, or ID"
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              Showing {filteredInquiries.length} of {inquiries.length} inquiries.
+            </p>
+          </div>
+
           <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4">
             <h2 className="text-2xl font-semibold text-slate-900">Admin list</h2>
             <p className="text-sm text-slate-600 mb-3">Admin contacts that receive inquiry notifications:</p>
@@ -142,14 +177,14 @@ export default function Admin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {inquiries.length === 0 ? (
+              {filteredInquiries.length === 0 ? (
                 <tr>
                   <td className="px-4 py-4 text-slate-500" colSpan={8}>
-                    No inquiries found.
+                    {inquiries.length === 0 ? "No inquiries found." : "No inquiries match your search."}
                   </td>
                 </tr>
               ) : (
-                inquiries.map((inquiry) => (
+                filteredInquiries.map((inquiry) => (
                   <tr key={inquiry.id}>
                     <td className="px-4 py-3 font-mono text-xs text-slate-600">{inquiry.id}</td>
                     <td className="px-4 py-3">{inquiry.name}</td>
