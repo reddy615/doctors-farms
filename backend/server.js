@@ -314,9 +314,14 @@ const inquirySchema = z.object({
     .default(''),
   stay: z.string().max(100).optional().default('Not provided'),
   roomType: z.string().max(120).optional().default('Not selected'),
-  pricePerNight: z.string().max(80).optional().default('Not provided'),
+  pricePerNight15000: z.string().max(80).optional().default('Not provided'),
   roomPrice: z.number().int().nonnegative().optional().default(0),
-  message: z.string().min(1, 'Message is required').max(5000),
+  message: z
+    .string()
+    .max(5000)
+    .optional()
+    .default('Not provided')
+    .transform((value) => value.trim() || 'Not provided'),
 });
 
 function normalizeInquiryInput(body = {}) {
