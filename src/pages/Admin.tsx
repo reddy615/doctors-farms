@@ -166,6 +166,7 @@ export default function Admin() {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-slate-700">
               <tr>
+                <th className="px-4 py-3 text-left font-medium">S.No</th>
                 <th className="px-4 py-3 text-left font-medium">ID</th>
                 <th className="px-4 py-3 text-left font-medium">Name</th>
                 <th className="px-4 py-3 text-left font-medium">Email</th>
@@ -179,13 +180,14 @@ export default function Admin() {
             <tbody className="divide-y divide-slate-100 bg-white">
               {filteredInquiries.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-4 text-slate-500" colSpan={8}>
+                  <td className="px-4 py-4 text-slate-500" colSpan={9}>
                     {inquiries.length === 0 ? "No inquiries found." : "No inquiries match your search."}
                   </td>
                 </tr>
               ) : (
-                filteredInquiries.map((inquiry) => (
+                filteredInquiries.map((inquiry, index) => (
                   <tr key={inquiry.id}>
+                    <td className="px-4 py-3 font-medium text-slate-900">{index + 1}</td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-600">{inquiry.id}</td>
                     <td className="px-4 py-3">{inquiry.name}</td>
                     <td className="px-4 py-3">{inquiry.email}</td>
