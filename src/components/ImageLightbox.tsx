@@ -269,9 +269,10 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       {/* Image container */}
       <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden px-4">
         <img
+          key={images[currentIndex]}
           src={images[currentIndex]}
           alt={`Gallery image ${currentIndex + 1}`}
-          className="max-h-[90vh] max-w-[90vw] object-contain transition-transform duration-300 select-none"
+          className="max-h-[90vh] max-w-[90vw] object-contain select-none animate-in fade-in duration-150"
           style={{
             transform: `translate3d(${position.x}px, ${position.y}px, 0) scale(${zoom})`,
             userSelect: 'none',
