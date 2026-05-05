@@ -4,6 +4,7 @@ export type Room = {
   pricePerNight: number;
   features: string[];
   image: string;
+  gallery?: string[];
 };
 
 export const HERITAGE_COTTAGE_PRICE = 15000;
@@ -16,6 +17,12 @@ export const rooms: Room[] = [
     pricePerNight: HERITAGE_COTTAGE_PRICE,
     features: ["Private terrace", "Natural materials", "Garden view"],
     image: "/heritage-cottage.jpg",
+    gallery: [
+      "/heritage-cottage.jpg",
+      "/heritage-cottage-entrance.jpg",
+      "/heritage-cottage-gate.jpg",
+      "/heritage-cottage-side.jpg",
+    ],
   },
 ];
 
