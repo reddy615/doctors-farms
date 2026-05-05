@@ -224,7 +224,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute right-4 top-4 z-50 rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
+        className="absolute right-4 top-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-2 text-white transition-all hover:bg-opacity-100"
         aria-label="Close"
       >
         <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,7 +236,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       <div className="absolute left-4 top-4 z-50 flex flex-col gap-2">
         <button
           onClick={zoomIn}
-          className="pointer-events-auto rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
+          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-2 text-white transition-all hover:bg-opacity-100"
           aria-label="Zoom in"
           title="Zoom in (+ key or scroll up)"
         >
@@ -246,7 +246,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         </button>
         <button
           onClick={zoomOut}
-          className="pointer-events-auto rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
+          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-2 text-white transition-all hover:bg-opacity-100"
           aria-label="Zoom out"
           title="Zoom out (- key or scroll down)"
         >
@@ -256,7 +256,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         </button>
         <button
           onClick={resetZoom}
-          className="pointer-events-auto rounded-full bg-white bg-opacity-20 p-2 text-white transition-all hover:bg-opacity-40"
+          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-2 text-white transition-all hover:bg-opacity-100"
           aria-label="Reset zoom"
           title="Reset zoom (0 key)"
         >
@@ -288,7 +288,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         {/* Previous button */}
         <button
           onClick={goToPrevious}
-          className="absolute left-4 z-50 rounded-full bg-white bg-opacity-20 p-3 text-white transition-all hover:bg-opacity-40"
+          className="absolute left-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-3 text-white transition-all hover:bg-opacity-100"
           aria-label="Previous image"
         >
           <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,7 +299,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         {/* Next button */}
         <button
           onClick={goToNext}
-          className="absolute right-4 z-50 rounded-full bg-white bg-opacity-20 p-3 text-white transition-all hover:bg-opacity-40"
+          className="absolute right-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-3 text-white transition-all hover:bg-opacity-100"
           aria-label="Next image"
         >
           <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -310,10 +310,10 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
 
       {/* Image counter and zoom level */}
       <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-4">
-        <div className="rounded-full bg-white bg-opacity-20 px-4 py-2 text-white">
+        <div className="rounded-full bg-sky-400 bg-opacity-80 px-4 py-2 text-white">
           {currentIndex + 1} / {images.length}
         </div>
-        <div className="rounded-full bg-white bg-opacity-20 px-4 py-2 text-white">
+        <div className="rounded-full bg-sky-400 bg-opacity-80 px-4 py-2 text-white">
           Zoom: {(zoom * 100).toFixed(0)}%
         </div>
       </div>
