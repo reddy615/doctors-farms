@@ -354,7 +354,11 @@ export default function Contact() {
                     ))}
                   </select>
                   {selectedRoomPrice > 0 && (
-                    <p className="mt-2 text-xs text-brand-700">Selected room price: {formatINR(selectedRoomPrice)} / night</p>
+                    <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
+                      <p className="text-sm font-medium text-brand-900">
+                        Price per night: <span className="text-lg font-bold">{formatINR(selectedRoomPrice)}</span>
+                      </p>
+                    </div>
                   )}
                 </div>
                 <div>
