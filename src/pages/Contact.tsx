@@ -419,14 +419,21 @@ export default function Contact() {
                     <option value="">Select a room</option>
                     {rooms.map((room) => (
                       <option key={room.name} value={room.name}>
-                        {room.name} - {formatINR(room.pricePerNight)} / night
+                        {room.name === "Heritage Cottage" 
+                          ? `${room.name} - ${formatINR(room.pricePerNight)} for 24 hours`
+                          : `${room.name} - ${formatINR(room.pricePerNight)} / night`
+                        }
                       </option>
                     ))}
                   </select>
                 {selectedRoomPrice > 0 && (
                   <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
                     <p className="text-sm font-medium text-brand-900">
-                      Price per night: <span className="text-lg font-bold">{formatINR(selectedRoomPrice)}</span>
+                      {form.roomType === "Heritage Cottage" 
+                        ? "Price for 24 hours: "
+                        : "Price per night: "
+                      }
+                      <span className="text-lg font-bold">{formatINR(selectedRoomPrice)}</span>
                     </p>
                     {totalCost > 0 && totalCost !== selectedRoomPrice && (
                       <p className="mt-2 text-sm font-semibold text-brand-700">Total cost: {formatINR(totalCost)}</p>

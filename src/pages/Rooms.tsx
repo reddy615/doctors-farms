@@ -60,7 +60,10 @@ export default function Rooms() {
               <h2 className="text-xl font-semibold text-slate-900">{room.name}</h2>
               <p className="mt-2 text-sm text-slate-600">{room.description}</p>
               <p className="mt-4 text-sm font-medium text-brand-700">
-                {room.name === "Heritage Cottage" ? formatINR(HERITAGE_COTTAGE_PRICE) : formatINR(room.pricePerNight)} / night
+                {room.name === "Heritage Cottage" 
+                  ? `${formatINR(HERITAGE_COTTAGE_PRICE)} for 24 hours`
+                  : `${formatINR(room.pricePerNight)} / night`
+                }
               </p>
               <ul className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
                 {room.features.map((feature) => (
