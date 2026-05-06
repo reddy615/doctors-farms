@@ -72,7 +72,7 @@ const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; na
 
 export default function Contact() {
   const [searchParams] = useSearchParams();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "", roomType: "", checkInDate: "", checkInTime: "", checkInAmpm: "AM", checkOutDate: "", checkOutTime: "", checkOutAmpm: "AM" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "", roomType: "", checkInDate: "", checkInHour: "", checkInMinute: "", checkInAmpm: "AM", checkOutDate: "", checkOutHour: "", checkOutMinute: "", checkOutAmpm: "AM" });
   const [submitted, setSubmitted] = useState(false);
   const [inquiryId, setInquiryId] = useState('');
   const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'pending'>('idle');
@@ -133,14 +133,11 @@ export default function Contact() {
     }));
   }, [searchParams]);
 
-  const combineDateTime = (date: string, time: string, ampm: string) => {
-    if (!date || !time) return '';
+  const combineDateTime = (date: string, hour: string, minute: string, ampm: string) => {
+    if (!date || !hour || !minute) return '';
     try {
-      // accept time like "hh:mm" and ampm as "AM" or "PM"
-      const m = time.match(/^\s*(\d{1,2}):(\d{2})\s*$/);
-      if (!m) return '';
-      let hh = Number(m[1]);
-      const mm = m[2];
+      let hh = Number(hour);
+      const mm = minute;
       const up = ampm.toUpperCase();
       if (up === 'AM' && hh === 12) hh = 0;
       if (up === 'PM' && hh < 12) hh = hh + 12;
@@ -159,8 +156,8 @@ export default function Contact() {
 
     try {
       console.log('Sending form data:', form);
-      const checkIn = combineDateTime((form as any).checkInDate, (form as any).checkInTime, (form as any).checkInAmpm);
-      const checkOut = combineDateTime((form as any).checkOutDate, (form as any).checkOutTime, (form as any).checkOutAmpm);
+      const checkIn = combineDateTime((form as any).checkInDate, (form as any).checkInHour, (form as any).checkInMinute, (form as any).checkInAmpm);
+      const checkOut = combineDateTime((form as any).checkOutDate, (form as any).checkOutHour, (form as any).checkOutMinute, (form as any).checkOutAmpm);
 
       const payload = {
         ...form,
@@ -398,22 +395,36 @@ export default function Contact() {
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                       placeholder="Check-in date"
                     />
-                    <div className="flex gap-2">
-                      <input
-                        name="checkInTime"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="^([0-9]{1,2}):([0-5][0-9])$"
-                        placeholder="hh:mm"
-                        value={(form as any).checkInTime}
+                    <div className="flex gap-1">
+                      <select
+                        name="checkInHour"
+                        value={(form as any).checkInHour}
                         onChange={handleChange}
-                        className="w-1/2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                      />
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                      >
+                        <option value="">hh</option>
+                        {Array.from({ length: 12 }).map((_, i) => {
+                          const hour = i + 1;
+                          return <option key={i} value={String(hour)}>{hour}</option>;
+                        })}
+                      </select>
+                      <select
+                        name="checkInMinute"
+                        value={(form as any).checkInMinute}
+                        onChange={handleChange}
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                      >
+                        <option value="">mm</option>
+                        {Array.from({ length: 60 }).map((_, i) => {
+                          const minute = String(i).padStart(2, '0');
+                          return <option key={i} value={minute}>{minute}</option>;
+                        })}
+                      </select>
                       <select
                         name="checkInAmpm"
                         value={(form as any).checkInAmpm}
                         onChange={handleChange}
-                        className="w-1/2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                       >
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
@@ -429,22 +440,36 @@ export default function Contact() {
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                       placeholder="Check-out date"
                     />
-                    <div className="flex gap-2">
-                      <input
-                        name="checkOutTime"
-                        type="text"
-                        inputMode="numeric"
-                        pattern="^([0-9]{1,2}):([0-5][0-9])$"
-                        placeholder="hh:mm"
-                        value={(form as any).checkOutTime}
+                    <div className="flex gap-1">
+                      <select
+                        name="checkOutHour"
+                        value={(form as any).checkOutHour}
                         onChange={handleChange}
-                        className="w-1/2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                      />
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                      >
+                        <option value="">hh</option>
+                        {Array.from({ length: 12 }).map((_, i) => {
+                          const hour = i + 1;
+                          return <option key={i} value={String(hour)}>{hour}</option>;
+                        })}
+                      </select>
+                      <select
+                        name="checkOutMinute"
+                        value={(form as any).checkOutMinute}
+                        onChange={handleChange}
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                      >
+                        <option value="">mm</option>
+                        {Array.from({ length: 60 }).map((_, i) => {
+                          const minute = String(i).padStart(2, '0');
+                          return <option key={i} value={minute}>{minute}</option>;
+                        })}
+                      </select>
                       <select
                         name="checkOutAmpm"
                         value={(form as any).checkOutAmpm}
                         onChange={handleChange}
-                        className="w-1/2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-2 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                       >
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
