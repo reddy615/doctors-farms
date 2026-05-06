@@ -24,6 +24,8 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated in localStorage
@@ -175,6 +177,7 @@ export default function Admin() {
                 <th className="px-4 py-3 text-left font-medium">Stay</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-left font-medium">Created</th>
+                <th className="px-4 py-3 text-left font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -201,12 +204,57 @@ export default function Admin() {
                       </span>
                     </td>
                     <td className="px-4 py-3">{new Date(inquiry.createdAt).toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        title="View details"
+                        onClick={() => { setSelectedInquiry(inquiry); setShowDetails(true); }}
+                        className="inline-flex items-center justify-center rounded-md p-2 text-slate-700 hover:bg-slate-100"
+                      >
+                        {/* Eye icon */}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Details modal */}
+        {showDetails && selectedInquiry && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowDetails(false)} />
+            <div className="relative z-10 mx-4 max-w-2xl rounded-lg bg-white p-6 shadow-lg">
+              <div className="flex items-start justify-between">
+                <h3 className="text-xl font-semibold">Inquiry Details</h3>
+                <button onClick={() => setShowDetails(false)} className="text-slate-500 hover:text-slate-800">Close</button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-slate-700">
+                <div><strong>ID:</strong> {selectedInquiry.id}</div>
+                <div><strong>Name:</strong> {selectedInquiry.name}</div>
+                <div><strong>Email:</strong> {selectedInquiry.email}</div>
+                <div><strong>Phone:</strong> {(selectedInquiry as any).phone || 'Not provided'}</div>
+                <div><strong>Room type:</strong> {selectedInquiry.roomType || 'Not selected'}</div>
+                <div><strong>Price per night:</strong> {selectedInquiry.pricePerNight || 'Not provided'}</div>
+                <div><strong>Stay:</strong> {selectedInquiry.stay}</div>
+                <div><strong>Message:</strong>
+                  <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 mt-1">{selectedInquiry.message}</div>
+                </div>
+                <div><strong>Status:</strong> {selectedInquiry.status}</div>
+                <div><strong>Created:</strong> {new Date(selectedInquiry.createdAt).toLocaleString()}</div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button onClick={() => setShowDetails(false)} className="rounded-md bg-brand-600 px-4 py-2 text-white hover:bg-brand-700">Close</button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
       )}
     </div>
