@@ -231,7 +231,16 @@ export default function Admin() {
             <div className="relative z-10 mx-4 max-w-2xl rounded-lg bg-white p-6 shadow-lg">
               <div className="flex items-start justify-between">
                 <h3 className="text-xl font-semibold">Inquiry Details</h3>
-                <button onClick={() => setShowDetails(false)} className="text-slate-500 hover:text-slate-800">Close</button>
+                <button
+                  onClick={() => setShowDetails(false)}
+                  aria-label="Close"
+                  title="Close"
+                  className="text-slate-500 hover:text-slate-800 p-1 rounded-md"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-slate-700">
