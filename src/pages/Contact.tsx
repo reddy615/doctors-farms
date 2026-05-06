@@ -72,7 +72,7 @@ const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; na
 
 export default function Contact() {
   const [searchParams] = useSearchParams();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "", roomType: "", checkIn: "", checkOut: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "", roomType: "", checkInDate: "", checkInTime: "", checkOutDate: "", checkOutTime: "" });
   const [submitted, setSubmitted] = useState(false);
   const [inquiryId, setInquiryId] = useState('');
   const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'pending'>('idle');
@@ -133,6 +133,17 @@ export default function Contact() {
     }));
   }, [searchParams]);
 
+  const combineDateTime = (date: string, time: string) => {
+    if (!date || !time) return '';
+    try {
+      // time is in HH:MM (24h) format from our select value
+      const iso = new Date(`${date}T${time}:00`).toISOString();
+      return iso;
+    } catch {
+      return '';
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMailStatus('sending');
@@ -140,14 +151,21 @@ export default function Contact() {
 
     try {
       console.log('Sending form data:', form);
+      const checkIn = combineDateTime((form as any).checkInDate, (form as any).checkInTime);
+      const checkOut = combineDateTime((form as any).checkOutDate, (form as any).checkOutTime);
+
+      const payload = {
+        ...form,
+        roomPrice: selectedRoomPrice,
+        pricePerNight: selectedRoomPrice ? `${formatINR(selectedRoomPrice)} / night` : '',
+        checkIn,
+        checkOut,
+      };
+
       const response = await apiFetch('/api/inquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          roomPrice: selectedRoomPrice,
-          pricePerNight: selectedRoomPrice ? `${formatINR(selectedRoomPrice)} / night` : '',
-        }),
+        body: JSON.stringify(payload),
       });
 
       console.log('Response status:', response.status);
@@ -365,21 +383,61 @@ export default function Contact() {
                   <label className="block text-sm font-medium text-slate-700">Check-in and Check-out</label>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <input
-                      name="checkIn"
-                      type="datetime-local"
-                      value={(form as any).checkIn}
+                      name="checkInDate"
+                      type="date"
+                      value={(form as any).checkInDate}
                       onChange={handleChange}
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                      placeholder="Check-in"
+                      placeholder="Check-in date"
                     />
+                    <select
+                      name="checkInTime"
+                      value={(form as any).checkInTime}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                    >
+                      <option value="">Select time</option>
+                      {Array.from({ length: 48 }).map((_, i) => {
+                        const hh = Math.floor(i / 2);
+                        const mm = i % 2 === 0 ? '00' : '30';
+                        const value = `${String(hh).padStart(2, '0')}:${mm}`;
+                        const date = new Date();
+                        date.setHours(hh, Number(mm), 0, 0);
+                        const label = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+                        return (
+                          <option key={value} value={value}>{label}</option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
                     <input
-                      name="checkOut"
-                      type="datetime-local"
-                      value={(form as any).checkOut}
+                      name="checkOutDate"
+                      type="date"
+                      value={(form as any).checkOutDate}
                       onChange={handleChange}
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                      placeholder="Check-out"
+                      placeholder="Check-out date"
                     />
+                    <select
+                      name="checkOutTime"
+                      value={(form as any).checkOutTime}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                    >
+                      <option value="">Select time</option>
+                      {Array.from({ length: 48 }).map((_, i) => {
+                        const hh = Math.floor(i / 2);
+                        const mm = i % 2 === 0 ? '00' : '30';
+                        const value = `${String(hh).padStart(2, '0')}:${mm}`;
+                        const date = new Date();
+                        date.setHours(hh, Number(mm), 0, 0);
+                        const label = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+                        return (
+                          <option key={value} value={value}>{label}</option>
+                        );
+                      })}
+                    </select>
                   </div>
                 </div>
                 <div>

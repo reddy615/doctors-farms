@@ -34,7 +34,7 @@ export default function Admin() {
     try {
       const d = new Date(val);
       if (isNaN(d.getTime())) return val;
-      return d.toLocaleString();
+      return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
     } catch {
       return val;
     }
