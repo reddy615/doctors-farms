@@ -84,6 +84,7 @@ export default function Contact() {
     message: string;
   }>({ checked: false, healthy: true, message: '' });
   const [selectedRoomPrice, setSelectedRoomPrice] = useState(0);
+  const [totalCost, setTotalCost] = useState(0);
 
   useEffect(() => {
     const checkMailHealth = async () => {
@@ -111,14 +112,50 @@ export default function Contact() {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   };
 
+  const calculateTotalCost = (checkInDate: string, checkInHour: string, checkInMinute: string, checkInAmpm: string, checkOutDate: string, checkOutHour: string, checkOutMinute: string, checkOutAmpm: string, roomPrice: number) => {
+    if (!checkInDate || !checkInHour || !checkInMinute || !checkOutDate || !checkOutHour || !checkOutMinute || !roomPrice) return 0;
+    
+    try {
+      // Convert check-in time to 24-hour format
+      let checkInHour24 = Number(checkInHour);
+      if (checkInAmpm.toUpperCase() === 'AM' && checkInHour24 === 12) checkInHour24 = 0;
+      if (checkInAmpm.toUpperCase() === 'PM' && checkInHour24 < 12) checkInHour24 += 12;
+      
+      // Convert check-out time to 24-hour format
+      let checkOutHour24 = Number(checkOutHour);
+      if (checkOutAmpm.toUpperCase() === 'AM' && checkOutHour24 === 12) checkOutHour24 = 0;
+      if (checkOutAmpm.toUpperCase() === 'PM' && checkOutHour24 < 12) checkOutHour24 += 12;
+      
+      const checkInDateTime = new Date(`${checkInDate}T${String(checkInHour24).padStart(2, '0')}:${checkInMinute}:00`);
+      const checkOutDateTime = new Date(`${checkOutDate}T${String(checkOutHour24).padStart(2, '0')}:${checkOutMinute}:00`);
+      
+      // Calculate hours difference
+      const hoursDiff = (checkOutDateTime.getTime() - checkInDateTime.getTime()) / (1000 * 60 * 60);
+      
+      // Calculate number of nights (round up partial days)
+      const nights = Math.ceil(hoursDiff / 24);
+      const cost = nights * roomPrice;
+      
+      return cost > 0 ? cost : 0;
+    } catch {
+      return 0;
+    }
+  };
+
   useEffect(() => {
-    const selectedRoom = rooms.find((room) => room.name === form.roomType);
-    setSelectedRoomPrice(
-      selectedRoom?.name === "Heritage Cottage"
-        ? HERITAGE_COTTAGE_PRICE
-        : selectedRoom?.pricePerNight ?? 0
+    const cost = calculateTotalCost(
+      (form as any).checkInDate,
+      (form as any).checkInHour,
+      (form as any).checkInMinute,
+      (form as any).checkInAmpm,
+      (form as any).checkOutDate,
+      (form as any).checkOutHour,
+      (form as any).checkOutMinute,
+      (form as any).checkOutAmpm,
+      selectedRoomPrice
     );
-  }, [form.roomType]);
+    setTotalCost(cost);
+  }, [(form as any).checkInDate, (form as any).checkInHour, (form as any).checkInMinute, (form as any).checkInAmpm, (form as any).checkOutDate, (form as any).checkOutHour, (form as any).checkOutMinute, (form as any).checkOutAmpm, selectedRoomPrice]);
 
   useEffect(() => {
     const roomTypeFromQuery = searchParams.get('roomType');
@@ -163,6 +200,7 @@ export default function Contact() {
         ...form,
         roomPrice: selectedRoomPrice,
         pricePerNight: selectedRoomPrice ? `${formatINR(selectedRoomPrice)} / night` : '',
+        totalCost,
         checkIn,
         checkOut,
       };
@@ -318,10 +356,13 @@ export default function Contact() {
                   <p className="font-medium">Next Step: Complete Payment</p>
                   <p className="mt-2">Please proceed with payment to confirm your booking reservation.</p>
                   {form.roomType && selectedRoomPrice > 0 && (
-                    <p className="mt-2">{form.roomType}: {formatINR(selectedRoomPrice)} / night</p>
+                    <div className="mt-3 space-y-1">
+                      <p>{form.roomType}: {formatINR(selectedRoomPrice)} / night</p>
+                      {totalCost > 0 && <p className="font-semibold">Total: {formatINR(totalCost)}</p>}
+                    </div>
                   )}
                 </div>
-                <PaymentForm inquiryId={inquiryId} name={form.name} email={form.email} amount={selectedRoomPrice || rooms[0]?.pricePerNight || 0} />
+                <PaymentForm inquiryId={inquiryId} name={form.name} email={form.email} amount={totalCost || selectedRoomPrice || rooms[0]?.pricePerNight || 0} />
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="mt-6 space-y-5">
@@ -376,13 +417,16 @@ export default function Contact() {
                       </option>
                     ))}
                   </select>
-                  {selectedRoomPrice > 0 && (
-                    <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
-                      <p className="text-sm font-medium text-brand-900">
-                        Price per night: <span className="text-lg font-bold">{formatINR(selectedRoomPrice)}</span>
-                      </p>
-                    </div>
-                  )}
+                {selectedRoomPrice > 0 && (
+                  <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                    <p className="text-sm font-medium text-brand-900">
+                      Price per night: <span className="text-lg font-bold">{formatINR(selectedRoomPrice)}</span>
+                    </p>
+                    {totalCost > 0 && totalCost !== selectedRoomPrice && (
+                      <p className="mt-2 text-sm font-semibold text-brand-700">Total cost: {formatINR(totalCost)}</p>
+                    )}
+                  </div>
+                )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">Check-in and Check-out</label>
