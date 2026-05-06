@@ -366,7 +366,7 @@ export default function Contact() {
                   <div className="mt-2 grid grid-cols-2 gap-3">
                     <input
                       name="checkIn"
-                      type="date"
+                      type="datetime-local"
                       value={(form as any).checkIn}
                       onChange={handleChange}
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
@@ -374,7 +374,7 @@ export default function Contact() {
                     />
                     <input
                       name="checkOut"
-                      type="date"
+                      type="datetime-local"
                       value={(form as any).checkOut}
                       onChange={handleChange}
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"

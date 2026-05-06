@@ -29,6 +29,16 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const formatDateTime = (val?: string) => {
+    if (!val) return '';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return val;
+      return d.toLocaleString();
+    } catch {
+      return val;
+    }
+  };
 
   useEffect(() => {
     // Check if user is authenticated in localStorage
@@ -199,7 +209,7 @@ export default function Admin() {
                     <td className="px-4 py-3">{inquiry.email}</td>
                     <td className="px-4 py-3">{inquiry.roomType || '-'}</td>
                     <td className="px-4 py-3">{inquiry.pricePerNight || '-'}</td>
-                    <td className="px-4 py-3">{(inquiry as any).checkIn ? `${(inquiry as any).checkIn} → ${(inquiry as any).checkOut || '-'}` : inquiry.stay}</td>
+                    <td className="px-4 py-3">{(inquiry as any).checkIn ? `${formatDateTime((inquiry as any).checkIn)} → ${formatDateTime((inquiry as any).checkOut) || '-'}` : inquiry.stay}</td>
                     <td className="px-4 py-3">
                       <span className="rounded-full px-3 py-1 text-xs font-semibold text-white "
                         style={{ backgroundColor: inquiry.status === 'paid' ? '#16a34a' : inquiry.status === 'payment_initiated' ? '#f59e0b' : '#3b82f6' }}>
@@ -254,8 +264,8 @@ export default function Admin() {
                 <div><strong>Room type:</strong> {selectedInquiry.roomType || 'Not selected'}</div>
                 <div><strong>Price per night:</strong> {selectedInquiry.pricePerNight || 'Not provided'}</div>
                 <div className="flex gap-6">
-                  <div><strong>Check-in:</strong> {(selectedInquiry as any).checkIn || selectedInquiry.stay || 'Not provided'}</div>
-                  <div><strong>Check-out:</strong> {(selectedInquiry as any).checkOut || 'Not provided'}</div>
+                  <div><strong>Check-in:</strong> {formatDateTime((selectedInquiry as any).checkIn) || selectedInquiry.stay || 'Not provided'}</div>
+                  <div><strong>Check-out:</strong> {formatDateTime((selectedInquiry as any).checkOut) || 'Not provided'}</div>
                 </div>
                 <div><strong>Message:</strong>
                   <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 mt-1">{selectedInquiry.message}</div>
