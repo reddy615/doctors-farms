@@ -313,6 +313,8 @@ const inquirySchema = z.object({
     .optional()
     .default(''),
   stay: z.string().max(100).optional().default('Not provided'),
+  checkIn: z.string().optional().default(''),
+  checkOut: z.string().optional().default(''),
   roomType: z.string().max(120).optional().default('Not selected'),
   pricePerNight15000: z.string().max(80).optional().default('Not provided'),
   roomPrice: z.number().int().nonnegative().optional().default(0),
@@ -329,7 +331,9 @@ function normalizeInquiryInput(body = {}) {
     name: body.name || body.fullName,
     email: body.email,
     phone: body.phone,
-    stay: body.stay || body.service || body.preferredDate || 'Not provided',
+    checkIn: body.checkIn || body.check_in || '',
+    checkOut: body.checkOut || body.check_out || '',
+    stay: body.stay || (body.checkIn ? `${body.checkIn} to ${body.checkOut || 'N/A'}` : body.service || body.preferredDate || 'Not provided'),
     roomType: body.roomType,
     pricePerNight: body.pricePerNight,
     roomPrice: typeof body.roomPrice === 'number' ? body.roomPrice : Number(body.roomPrice) || 0,
@@ -351,7 +355,7 @@ async function submitInquiry(req, res) {
     });
   }
 
-  const { name, email, phone, stay, roomType, pricePerNight, roomPrice, message } = parsed.data;
+  const { name, email, phone, stay, roomType, pricePerNight, roomPrice, message, checkIn, checkOut } = parsed.data;
 
   const inquiry = {
     id: `INQ_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
@@ -359,6 +363,8 @@ async function submitInquiry(req, res) {
     email,
     phone: phone || '',
     stay: stay || 'Not provided',
+    checkIn: checkIn || '',
+    checkOut: checkOut || '',
     roomType: roomType || 'Not selected',
     pricePerNight: pricePerNight || 'Not provided',
     roomPrice: roomPrice || 0,
@@ -390,14 +396,15 @@ async function submitInquiry(req, res) {
     to: CONTACT_EMAIL,
     bcc: ADMIN_EMAILS,
     subject: `New booking inquiry from ${name}`,
-    text: `Name: ${name}\nEmail: ${email}\nRoom type: ${roomType || 'Not selected'}\nPrice: ${pricePerNight || 'Not provided'}\nPreferred stay: ${stay}\nPhone: ${phone}\n\nMessage:\n${message}`,
+    text: `Name: ${name}\nEmail: ${email}\nRoom type: ${roomType || 'Not selected'}\nPrice: ${pricePerNight || 'Not provided'}\nCheck-in: ${checkIn || 'Not provided'}\nCheck-out: ${checkOut || 'Not provided'}\nPhone: ${phone}\n\nMessage:\n${message}`,
     html: `
       <p><strong>Name:</strong> ${name}</p>
       <p><strong>Email:</strong> ${email}</p>
       <p><strong>Room type:</strong> ${roomType || 'Not selected'}</p>
       <p><strong>Price:</strong> ${pricePerNight || 'Not provided'}</p>
+      <p><strong>Check-in:</strong> ${checkIn || 'Not provided'}</p>
+      <p><strong>Check-out:</strong> ${checkOut || 'Not provided'}</p>
       <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
-      <p><strong>Preferred stay:</strong> ${stay}</p>
       <p><strong>Message:</strong></p>
       <p>${message.replace(/\n/g, '<br/>')}</p>
       <p><strong>Inquiry ID:</strong> ${inquiry.id}</p>
@@ -410,18 +417,19 @@ async function submitInquiry(req, res) {
     subject: `Your booking inquiry ${inquiry.id} received`,
     text: `Hi ${name},
 
-Thanks for your inquiry. We received your request and will get back shortly.
+  Thanks for your inquiry. We received your request and will get back shortly.
 
-Inquiry ID: ${inquiry.id}
-Room type: ${inquiry.roomType || 'Not selected'}
-Price: ${inquiry.pricePerNight || 'Not provided'}
-Stay: ${inquiry.stay}
-Phone: ${phone || 'Not provided'}
-Message:
-${inquiry.message}
+  Inquiry ID: ${inquiry.id}
+  Room type: ${inquiry.roomType || 'Not selected'}
+  Price: ${inquiry.pricePerNight || 'Not provided'}
+  Check-in: ${inquiry.checkIn || 'Not provided'}
+  Check-out: ${inquiry.checkOut || 'Not provided'}
+  Phone: ${phone || 'Not provided'}
+  Message:
+  ${inquiry.message}
 
-Regards,
-Doctors Farms`,
+  Regards,
+  Doctors Farms`,
     html: `
       <div style="font-family: Arial, sans-serif; color: #1f2937; line-height:1.6;">
         <h2>Booking Inquiry Received</h2>
@@ -430,7 +438,8 @@ Doctors Farms`,
         <p><strong>Inquiry ID:</strong> ${inquiry.id}</p>
         <p><strong>Room type:</strong> ${inquiry.roomType || 'Not selected'}</p>
         <p><strong>Price:</strong> ${inquiry.pricePerNight || 'Not provided'}</p>
-        <p><strong>Stay:</strong> ${inquiry.stay}</p>
+        <p><strong>Check-in:</strong> ${inquiry.checkIn || 'Not provided'}</p>
+        <p><strong>Check-out:</strong> ${inquiry.checkOut || 'Not provided'}</p>
         <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
         <p><strong>Message:</strong><br>${inquiry.message.replace(/\n/g, '<br>')}</p>
         <p>Best regards,<br>Doctors Farms Team</p>

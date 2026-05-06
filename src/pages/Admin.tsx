@@ -10,6 +10,9 @@ type Inquiry = {
   roomType?: string;
   pricePerNight?: string;
   stay: string;
+  checkIn?: string;
+  checkOut?: string;
+  phone?: string;
   message: string;
   status: string;
   createdAt: string;
@@ -174,7 +177,7 @@ export default function Admin() {
                 <th className="px-4 py-3 text-left font-medium">Email</th>
                 <th className="px-4 py-3 text-left font-medium">Room type</th>
                 <th className="px-4 py-3 text-left font-medium">Price</th>
-                <th className="px-4 py-3 text-left font-medium">Stay</th>
+                <th className="px-4 py-3 text-left font-medium">Check-in / Check-out</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-left font-medium">Created</th>
                 <th className="px-4 py-3 text-left font-medium">Actions</th>
@@ -196,7 +199,7 @@ export default function Admin() {
                     <td className="px-4 py-3">{inquiry.email}</td>
                     <td className="px-4 py-3">{inquiry.roomType || '-'}</td>
                     <td className="px-4 py-3">{inquiry.pricePerNight || '-'}</td>
-                    <td className="px-4 py-3">{inquiry.stay}</td>
+                    <td className="px-4 py-3">{(inquiry as any).checkIn ? `${(inquiry as any).checkIn} → ${(inquiry as any).checkOut || '-'}` : inquiry.stay}</td>
                     <td className="px-4 py-3">
                       <span className="rounded-full px-3 py-1 text-xs font-semibold text-white "
                         style={{ backgroundColor: inquiry.status === 'paid' ? '#16a34a' : inquiry.status === 'payment_initiated' ? '#f59e0b' : '#3b82f6' }}>
@@ -250,7 +253,10 @@ export default function Admin() {
                 <div><strong>Phone:</strong> {(selectedInquiry as any).phone || 'Not provided'}</div>
                 <div><strong>Room type:</strong> {selectedInquiry.roomType || 'Not selected'}</div>
                 <div><strong>Price per night:</strong> {selectedInquiry.pricePerNight || 'Not provided'}</div>
-                <div><strong>Stay:</strong> {selectedInquiry.stay}</div>
+                <div className="flex gap-6">
+                  <div><strong>Check-in:</strong> {(selectedInquiry as any).checkIn || selectedInquiry.stay || 'Not provided'}</div>
+                  <div><strong>Check-out:</strong> {(selectedInquiry as any).checkOut || 'Not provided'}</div>
+                </div>
                 <div><strong>Message:</strong>
                   <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 mt-1">{selectedInquiry.message}</div>
                 </div>

@@ -72,7 +72,7 @@ const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; na
 
 export default function Contact() {
   const [searchParams] = useSearchParams();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "", roomType: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "", stay: "", roomType: "", checkIn: "", checkOut: "" });
   const [submitted, setSubmitted] = useState(false);
   const [inquiryId, setInquiryId] = useState('');
   const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'pending'>('idle');
@@ -362,14 +362,25 @@ export default function Contact() {
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Preferred stay</label>
-                  <input
-                    name="stay"
-                    value={form.stay}
-                    onChange={handleChange}
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                    placeholder="e.g. 3 nights, 2 adults"
-                  />
+                  <label className="block text-sm font-medium text-slate-700">Check-in and Check-out</label>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <input
+                      name="checkIn"
+                      type="date"
+                      value={(form as any).checkIn}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                      placeholder="Check-in"
+                    />
+                    <input
+                      name="checkOut"
+                      type="date"
+                      value={(form as any).checkOut}
+                      onChange={handleChange}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                      placeholder="Check-out"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">Message <span className="text-xs text-slate-500">(any message)</span></label>
