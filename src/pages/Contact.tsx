@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../config/api";
-import { formatINR, HERITAGE_COTTAGE_PRICE, rooms } from "../data/rooms";
+import { formatINR, rooms } from "../data/rooms";
 
 const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; name: string; email: string; amount: number }) => {
   const [processing, setProcessing] = useState(false);
@@ -156,6 +156,12 @@ export default function Contact() {
     );
     setTotalCost(cost);
   }, [(form as any).checkInDate, (form as any).checkInHour, (form as any).checkInMinute, (form as any).checkInAmpm, (form as any).checkOutDate, (form as any).checkOutHour, (form as any).checkOutMinute, (form as any).checkOutAmpm, selectedRoomPrice]);
+
+  useEffect(() => {
+    const selectedRoom = rooms.find((room) => room.name === form.roomType);
+    const price = selectedRoom?.pricePerNight ?? 0;
+    setSelectedRoomPrice(price);
+  }, [form.roomType]);
 
   useEffect(() => {
     const roomTypeFromQuery = searchParams.get('roomType');
