@@ -77,6 +77,7 @@ export default function Contact() {
   const [inquiryId, setInquiryId] = useState('');
   const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'pending'>('idle');
   const [mailError, setMailError] = useState('');
+  const [validationError, setValidationError] = useState('');
   const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<'sent' | 'delayed' | 'pending' | null>(null);
   const [mailHealth, setMailHealth] = useState<{
     checked: boolean;
@@ -110,6 +111,8 @@ export default function Contact() {
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
+    // clear field-level validation when user edits inputs
+    setValidationError('');
   };
 
   const calculateTotalCost = (checkInDate: string, checkInHour: string, checkInMinute: string, checkInAmpm: string, checkOutDate: string, checkOutHour: string, checkOutMinute: string, checkOutAmpm: string, roomPrice: number) => {
@@ -195,14 +198,14 @@ export default function Contact() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMailError('');
+    setValidationError('');
 
     // Validate that both check-in and check-out have a date+time selected
     const checkIn = combineDateTime((form as any).checkInDate, (form as any).checkInHour, (form as any).checkInMinute, (form as any).checkInAmpm);
     const checkOut = combineDateTime((form as any).checkOutDate, (form as any).checkOutHour, (form as any).checkOutMinute, (form as any).checkOutAmpm);
 
     if (!checkIn || !checkOut) {
-      setMailStatus('error');
-      setMailError('Please fill the check in and check out time');
+      setValidationError('Please fill the check in and check out time');
       return;
     }
 
@@ -552,6 +555,9 @@ export default function Contact() {
                     className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                     placeholder="Tell us what you're looking for..."
                   />
+                  {validationError && (
+                    <p className="mt-2 text-sm text-red-700">{validationError}</p>
+                  )}
                 </div>
                 <button
                   type="submit"
