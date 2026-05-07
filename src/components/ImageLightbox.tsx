@@ -262,43 +262,43 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       {/* Close button */}
       <button
         onClick={onClose}
-        className="absolute right-4 top-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-2 text-white transition-all hover:bg-opacity-100"
+        className="absolute right-3 top-3 md:right-4 md:top-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-1.5 md:p-2 text-white transition-all hover:bg-opacity-100"
         aria-label="Close"
       >
-        <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
       {/* Zoom controls */}
-      <div className="absolute left-4 top-4 z-50 flex flex-col gap-2">
+      <div className="absolute left-3 top-3 md:left-4 md:top-4 z-50 flex flex-col gap-2">
         <button
           onClick={zoomIn}
-          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-2 text-white transition-all hover:bg-opacity-100"
+          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-1.5 md:p-2 text-white transition-all hover:bg-opacity-100"
           aria-label="Zoom in"
           title="Zoom in (+ key or scroll up)"
         >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
         </button>
         <button
           onClick={zoomOut}
-          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-2 text-white transition-all hover:bg-opacity-100"
+          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-1.5 md:p-2 text-white transition-all hover:bg-opacity-100"
           aria-label="Zoom out"
           title="Zoom out (- key or scroll down)"
         >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
           </svg>
         </button>
         <button
           onClick={resetZoom}
-          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-2 text-white transition-all hover:bg-opacity-100"
+          className="pointer-events-auto rounded-full bg-sky-400 bg-opacity-80 p-1.5 md:p-2 text-white transition-all hover:bg-opacity-100"
           aria-label="Reset zoom"
           title="Reset zoom (0 key)"
         >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
@@ -327,10 +327,10 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         {/* Previous button */}
         <button
           onClick={goToPrevious}
-          className="absolute left-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-3 text-white transition-all hover:bg-opacity-100"
+          className="absolute left-3 md:left-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-2 md:p-3 text-white transition-all hover:bg-opacity-100"
           aria-label="Previous image"
         >
-          <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
@@ -338,10 +338,10 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         {/* Next button */}
         <button
           onClick={goToNext}
-          className="absolute right-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-3 text-white transition-all hover:bg-opacity-100"
+          className="absolute right-3 md:right-4 z-50 rounded-full bg-sky-400 bg-opacity-80 p-2 md:p-3 text-white transition-all hover:bg-opacity-100"
           aria-label="Next image"
         >
-          <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-6 w-6 md:h-8 md:w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -349,10 +349,10 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
 
       {/* Image counter and zoom level */}
       <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-4">
-        <div className="rounded-full bg-sky-400 bg-opacity-80 px-4 py-2 text-white">
+        <div className="rounded-full bg-sky-400 bg-opacity-80 px-3 py-1.5 text-sm md:px-4 md:py-2 md:text-base text-white">
           {currentIndex + 1} / {images.length}
         </div>
-        <div className="rounded-full bg-sky-400 bg-opacity-80 px-4 py-2 text-white">
+        <div className="rounded-full bg-sky-400 bg-opacity-80 px-3 py-1.5 text-sm md:px-4 md:py-2 md:text-base text-white">
           Zoom: {(zoom * 100).toFixed(0)}%
         </div>
       </div>
