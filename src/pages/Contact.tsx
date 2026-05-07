@@ -194,14 +194,22 @@ export default function Contact() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setMailStatus('sending');
     setMailError('');
+
+    // Validate that both check-in and check-out have a date+time selected
+    const checkIn = combineDateTime((form as any).checkInDate, (form as any).checkInHour, (form as any).checkInMinute, (form as any).checkInAmpm);
+    const checkOut = combineDateTime((form as any).checkOutDate, (form as any).checkOutHour, (form as any).checkOutMinute, (form as any).checkOutAmpm);
+
+    if (!checkIn || !checkOut) {
+      setMailStatus('error');
+      setMailError('Please fill the check in and check out time');
+      return;
+    }
+
+    setMailStatus('sending');
 
     try {
       console.log('Sending form data:', form);
-      const checkIn = combineDateTime((form as any).checkInDate, (form as any).checkInHour, (form as any).checkInMinute, (form as any).checkInAmpm);
-      const checkOut = combineDateTime((form as any).checkOutDate, (form as any).checkOutHour, (form as any).checkOutMinute, (form as any).checkOutAmpm);
-
       const payload = {
         ...form,
         roomPrice: selectedRoomPrice,
