@@ -171,7 +171,6 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     if (dragStateRef.current.isSwipe) {
       // provide visual feedback by tracking horizontal and vertical delta
       const deltaX = e.clientX - dragStateRef.current.startPointer.x;
-      const deltaY = e.clientY - dragStateRef.current.startPointer.y;
       // set swipe delta limited to container width
       const container = containerRef.current;
       const max = container ? container.clientWidth : 1000;
