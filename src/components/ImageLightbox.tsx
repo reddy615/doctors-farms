@@ -26,6 +26,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     pointerId: number | null;
     startPointer: Position;
     startPosition: Position;
+    isSwipe?: boolean;
   }>({
     pointerId: null,
     startPointer: { x: 0, y: 0 },
@@ -39,6 +40,8 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     startDistance: 0,
     startZoom: 1,
   });
+  const [swipeDelta, setSwipeDelta] = useState(0);
+  const swipeThresholdRef = useRef({ horizontal: 50, vertical: 120 });
 
   const clampPosition = (nextPosition: Position) => {
     const container = containerRef.current;
@@ -68,6 +71,11 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
     setPosition({ x: 0, y: 0 });
     setIsDragging(false);
   };
+
+  useEffect(() => {
+    // reset swipe delta when image changes
+    setSwipeDelta(0);
+  }, [currentIndex]);
 
   const zoomIn = () => {
     setZoom((prev) => Math.min(prev + 0.2, 5));
@@ -110,8 +118,6 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
   };
 
   const handlePointerDown = (e: React.PointerEvent<HTMLImageElement>) => {
-    if (zoom === 1) return;
-
     e.currentTarget.setPointerCapture(e.pointerId);
     updatePointer(e.pointerId, { x: e.clientX, y: e.clientY });
 
@@ -122,20 +128,22 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         startZoom: zoom,
       };
       setIsDragging(false);
+      dragStateRef.current.isSwipe = false;
       return;
     }
 
+    // If zoom is 1, enable swipe detection instead of pan
+    const isSwipe = zoom === 1;
     dragStateRef.current = {
       pointerId: e.pointerId,
       startPointer: { x: e.clientX, y: e.clientY },
       startPosition: position,
+      isSwipe,
     };
-    setIsDragging(true);
+    setIsDragging(!isSwipe);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLImageElement>) => {
-    if (zoom === 1) return;
-
     updatePointer(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (activePointersRef.current.size === 2) {
@@ -159,6 +167,18 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
       return;
     }
 
+    // swipe mode when zoom === 1
+    if (dragStateRef.current.isSwipe) {
+      // provide visual feedback by tracking horizontal and vertical delta
+      const deltaX = e.clientX - dragStateRef.current.startPointer.x;
+      const deltaY = e.clientY - dragStateRef.current.startPointer.y;
+      // set swipe delta limited to container width
+      const container = containerRef.current;
+      const max = container ? container.clientWidth : 1000;
+      setSwipeDelta(Math.max(-max, Math.min(max, deltaX)));
+      return;
+    }
+
     if (!isDragging || dragStateRef.current.pointerId !== e.pointerId) return;
 
     const deltaX = e.clientX - dragStateRef.current.startPointer.x;
@@ -173,9 +193,26 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLImageElement>) => {
+    // If this pointer started a swipe, detect horizontal swipe on release
     if (dragStateRef.current.pointerId === e.pointerId) {
+      const startX = dragStateRef.current.startPointer.x;
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - dragStateRef.current.startPointer.y;
+
+      if (dragStateRef.current.isSwipe) {
+        const hThreshold = swipeThresholdRef.current.horizontal;
+        const vThreshold = swipeThresholdRef.current.vertical;
+        // If vertical swipe is dominant and exceeds threshold, close
+        if (Math.abs(deltaY) > vThreshold && Math.abs(deltaY) > Math.abs(deltaX)) {
+          onClose();
+        } else if (Math.abs(deltaX) > hThreshold) {
+          if (deltaX > 0) goToPrevious(); else goToNext();
+        }
+      }
+
       dragStateRef.current.pointerId = null;
       setIsDragging(false);
+      dragStateRef.current.isSwipe = false;
     }
 
     removePointer(e.pointerId);
@@ -186,6 +223,8 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
         startZoom: zoom,
       };
     }
+    // reset swipe delta after finishing
+    setSwipeDelta(0);
   };
 
   useEffect(() => {
@@ -274,7 +313,7 @@ export default function ImageLightbox({ images, initialIndex, onClose }: ImageLi
           alt={`Gallery image ${currentIndex + 1}`}
           className="max-h-[90vh] max-w-[90vw] object-contain select-none animate-in fade-in duration-150"
           style={{
-            transform: `translate3d(${position.x}px, ${position.y}px, 0) scale(${zoom})`,
+            transform: `translate3d(${position.x + (zoom === 1 ? swipeDelta : 0)}px, ${position.y}px, 0) scale(${zoom})`,
             userSelect: 'none',
             touchAction: 'none',
             pointerEvents: 'auto',
