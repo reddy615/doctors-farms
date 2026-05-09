@@ -34,16 +34,20 @@ export default function Admin() {
     try {
       const d = new Date(val);
       if (isNaN(d.getTime())) return val;
-      return new Intl.DateTimeFormat('en-IN', {
+      const parts = new Intl.DateTimeFormat('en-IN', {
         timeZone: 'Asia/Kolkata',
         year: 'numeric',
         month: 'short',
-        day: 'numeric',
+        day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
-        timeZoneName: 'short',
-      }).format(d);
+      }).formatToParts(d);
+
+      const get = (type: string) => parts.find((part) => part.type === type)?.value || '';
+      const date = `${get('day')} ${get('month')} ${get('year')}`.trim();
+      const time = `${get('hour')}:${get('minute')} ${get('dayPeriod')}`.trim();
+      return `${date}, ${time} IST`;
     } catch {
       return val;
     }
