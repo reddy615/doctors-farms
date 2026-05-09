@@ -182,14 +182,8 @@ export default function Contact() {
   const combineDateTime = (date: string, hour: string, minute: string, ampm: string) => {
     if (!date || !hour || !minute) return '';
     try {
-      let hh = Number(hour);
-      const mm = minute;
       const up = ampm.toUpperCase();
-      if (up === 'AM' && hh === 12) hh = 0;
-      if (up === 'PM' && hh < 12) hh = hh + 12;
-      const hhPadded = String(hh).padStart(2, '0');
-      const iso = new Date(`${date}T${hhPadded}:${mm}:00`).toISOString();
-      return iso;
+      return `${date} ${hour}:${minute} ${up}`;
     } catch {
       return '';
     }
