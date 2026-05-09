@@ -34,7 +34,15 @@ export default function Admin() {
     try {
       const d = new Date(val);
       if (isNaN(d.getTime())) return val;
-      return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+      return new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      }).format(d);
     } catch {
       return val;
     }
@@ -119,7 +127,7 @@ export default function Admin() {
       inquiry.stay,
       inquiry.status,
       inquiry.message,
-      new Date(inquiry.createdAt).toLocaleString(),
+      formatDateTime(inquiry.createdAt),
     ].some((value) => value.toLowerCase().includes(query));
   });
 
@@ -216,7 +224,7 @@ export default function Admin() {
                         {inquiry.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{new Date(inquiry.createdAt).toLocaleString()}</td>
+                    <td className="px-4 py-3">{formatDateTime(inquiry.createdAt)}</td>
                     <td className="px-4 py-3">
                       <button
                         title="View details"
@@ -271,7 +279,7 @@ export default function Admin() {
                   <div className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 mt-1">{selectedInquiry.message}</div>
                 </div>
                 <div><strong>Status:</strong> {selectedInquiry.status}</div>
-                <div><strong>Created:</strong> {new Date(selectedInquiry.createdAt).toLocaleString()}</div>
+                <div><strong>Created:</strong> {formatDateTime(selectedInquiry.createdAt)}</div>
               </div>
 
               <div className="mt-6 flex justify-end">
