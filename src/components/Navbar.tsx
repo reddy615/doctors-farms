@@ -9,6 +9,8 @@ const navItems = [
   { label: "Dining", to: "/dining" },
   { label: "Gallery", to: "/gallery" },
   { label: "Contact", to: "/contact" },
+  { label: "Privacy Policy", to: "/privacy-policy" },
+  { label: "Terms & Conditions", to: "/terms-conditions" },
 ];
 
 export default function Navbar() {
