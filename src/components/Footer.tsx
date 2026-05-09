@@ -40,7 +40,7 @@ export default function Footer() {
             <ul className="space-y-1 text-sm text-slate-300">
               <li>
                 <Link to="/about" className="hover:text-white">
-                  About
+                  About Us
                 </Link>
               </li>
               <li>
@@ -50,7 +50,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/contact" className="hover:text-white">
-                  Contact
+                  Contact Us
                 </Link>
               </li>
               <li>
