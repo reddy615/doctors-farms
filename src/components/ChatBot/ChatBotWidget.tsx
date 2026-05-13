@@ -69,17 +69,21 @@ export default function ChatBotWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasHydratedRef = useRef(false);
 
-  const resetChat = () => {
+  const startNewChat = () => {
     const freshMessages = createDefaultMessages();
-    setMessages(freshMessages);
+    const separatorMessage: Message = {
+      id: generateId(),
+      text: 'New chat started. Your previous conversation is still saved above.',
+      sender: 'bot',
+      timestamp: new Date(),
+      actionType: 'conversation',
+    };
+
+    setMessages((prev) => [...prev, separatorMessage, ...freshMessages]);
     setInput('');
     setLoading(false);
     setShowBookingForm(false);
     setChatState('open');
-
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(CHAT_HISTORY_STORAGE_KEY);
-    }
   };
 
   useEffect(() => {
@@ -221,7 +225,7 @@ export default function ChatBotWidget() {
               <p>Online - Ready to help</p>
             </div>
             <div className="chatbot-controls">
-              <button onClick={resetChat} className="control-btn new-chat-btn" title="Start new chat">
+              <button onClick={startNewChat} className="control-btn new-chat-btn" title="Start new chat">
                 <Plus size={16} />
                 <span>New Chat</span>
               </button>
