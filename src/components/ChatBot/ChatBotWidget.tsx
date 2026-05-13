@@ -107,8 +107,6 @@ export default function ChatBotWidget() {
   const generateId = () => `msg_${Date.now()}_${Math.random()}`;
 
   const handleQuickAction = async (action: string) => {
-    setShowQuickActions(false);
-
     const userMsg: Message = {
       id: generateId(),
       text: action,
@@ -171,8 +169,6 @@ export default function ChatBotWidget() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    setShowQuickActions(false);
-
     const userMsg: Message = {
       id: generateId(),
       text: input,
@@ -196,7 +192,6 @@ export default function ChatBotWidget() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, confirmMsg]);
-      setShowQuickActions(false);
       setShowBookingForm(false);
     } catch (error) {
       console.error('Booking error:', error);
