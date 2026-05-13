@@ -8,7 +8,7 @@ const WhatsAppButton: React.FC = () => {
       rel="noopener noreferrer"
       style={{
         position: 'fixed',
-        bottom: '1.5rem',
+        bottom: '100px',
         right: '1.5rem',
         backgroundColor: '#25D366',
         color: 'white',
