@@ -62,7 +62,9 @@ function createDefaultMessages(): Message[] {
 
 export default function ChatBotWidget() {
   const [chatState, setChatState] = useState<ChatState>('closed');
-  const [messages, setMessages] = useState<Message[]>(loadStoredMessages);
+  const initialMessages = loadStoredMessages();
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [showQuickActions, setShowQuickActions] = useState(initialMessages.length === 1);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -83,6 +85,7 @@ export default function ChatBotWidget() {
     setInput('');
     setLoading(false);
     setShowBookingForm(false);
+    setShowQuickActions(true);
     setChatState('open');
   };
 
@@ -104,6 +107,8 @@ export default function ChatBotWidget() {
   const generateId = () => `msg_${Date.now()}_${Math.random()}`;
 
   const handleQuickAction = async (action: string) => {
+    setShowQuickActions(false);
+
     const userMsg: Message = {
       id: generateId(),
       text: action,
@@ -166,6 +171,8 @@ export default function ChatBotWidget() {
     e.preventDefault();
     if (!input.trim()) return;
 
+    setShowQuickActions(false);
+
     const userMsg: Message = {
       id: generateId(),
       text: input,
@@ -189,6 +196,7 @@ export default function ChatBotWidget() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, confirmMsg]);
+      setShowQuickActions(false);
       setShowBookingForm(false);
     } catch (error) {
       console.error('Booking error:', error);
@@ -261,7 +269,7 @@ export default function ChatBotWidget() {
               )}
 
               {/* Quick Actions or Input */}
-              {!showBookingForm && messages.length === 1 && (
+              {!showBookingForm && showQuickActions && (
                 <QuickActions onAction={handleQuickAction} />
               )}
 
