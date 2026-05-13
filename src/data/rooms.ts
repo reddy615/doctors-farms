@@ -19,9 +19,9 @@ export const rooms: Room[] = [
     image: "/heritage-cottage.jpg",
     gallery: [
       "/heritage-cottage.jpg",
-      "/heritage-cottage-entrance.JPG",
-      "/heritage-cottage-gate.JPG",
-      "/heritage-cottage-side.JPG",
+      "/heritage-cottage-entrance.jpg",
+      "/heritage-cottage-bedroom1.jpg",
+      "/heritage-cottage-bedroom2.jpg",
     ],
   },
 ];
