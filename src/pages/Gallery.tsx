@@ -9,6 +9,7 @@ const galleryImages = [
   "/gallery-5.jpg",
   "/gallery-6.jpg",
   "/pool-photo.jpg",
+  "/gallery-7.jpeg",
   "/gallery-photo.jpg",
 ];
 
