@@ -708,6 +708,13 @@ app.post('/api/payment-callback', (req, res) => {
   res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
 });
 
+/* ----------------------------- CHATBOT ----------------------------- */
+
+const chatRoutes = require('./routes/chatRoutes');
+app.use('/api', chatRoutes);
+
+console.log('✅ ChatBot API routes mounted');
+
 /* ----------------------------- START SERVER ----------------------------- */
 
 async function start() {
