@@ -208,15 +208,14 @@ export default function ChatBotWidget() {
   return (
     <div className="chatbot-widget">
       {/* Chat Button */}
-      {chatState === 'closed' && (
-        <button
-          onClick={() => setChatState('open')}
-          className="chatbot-button"
-          aria-label="Open chat"
-        >
-          <MessageCircle size={24} />
-        </button>
-      )}
+      <button
+        onClick={() => setChatState('open')}
+        className="chatbot-button"
+        aria-label={chatState === 'closed' ? 'Open chat' : 'Chat launcher'}
+        title={chatState === 'closed' ? 'Open chat' : 'Chat launcher'}
+      >
+        <MessageCircle size={24} />
+      </button>
 
       {/* Chat Window */}
       {chatState !== 'closed' && (
