@@ -1,7 +1,93 @@
 const express = require('express');
+const dotenv = require('dotenv');
+const path = require('path');
+const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { handleChatMessage, validateBookingData, saveBookingInquiry } = require('../services/chatService');
 
+dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
+
 const router = express.Router();
+
+const MAIL_PROVIDER = (process.env.MAIL_PROVIDER || 'custom').toLowerCase();
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'doctorsfarms686@gmail.com';
+const MAIL_FROM = process.env.MAIL_FROM || process.env.SMTP_USER || CONTACT_EMAIL;
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
+const SMTP_USER = process.env.SMTP_USER || process.env.EMAIL_USER;
+const SMTP_PASS = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
+let transporter = null;
+const usingResend = MAIL_PROVIDER === 'resend';
+const resendClient = usingResend && RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+if (!usingResend && SMTP_USER && SMTP_PASS) {
+  transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+}
+
+function formatBookingEmail(bookingData, inquiryId) {
+  const guestCount = Number(bookingData.adults || 1) + Number(bookingData.children || 0);
+  const stayText = bookingData.checkInDate && bookingData.checkOutDate
+    ? `${bookingData.checkInDate} to ${bookingData.checkOutDate}`
+    : bookingData.checkInDate || 'Not provided';
+
+  return {
+    subject: `New booking inquiry from ${bookingData.customerName}`,
+    text: `New booking inquiry received\n\nInquiry ID: ${inquiryId}\nName: ${bookingData.customerName}\nEmail: ${bookingData.email}\nPhone: ${bookingData.phoneNumber}\nCheck-in: ${bookingData.checkInDate}\nCheck-out: ${bookingData.checkOutDate || 'Not provided'}\nGuests: ${guestCount} (${bookingData.adults} adult(s), ${bookingData.children} child(ren))\nRoom type: ${bookingData.roomType}\nStay: ${stayText}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
+        <h2>New Booking Inquiry</h2>
+        <p><strong>Inquiry ID:</strong> ${inquiryId}</p>
+        <p><strong>Name:</strong> ${bookingData.customerName}</p>
+        <p><strong>Email:</strong> ${bookingData.email}</p>
+        <p><strong>Phone:</strong> ${bookingData.phoneNumber}</p>
+        <p><strong>Check-in:</strong> ${bookingData.checkInDate}</p>
+        <p><strong>Check-out:</strong> ${bookingData.checkOutDate || 'Not provided'}</p>
+        <p><strong>Guests:</strong> ${guestCount} (${bookingData.adults} adult(s), ${bookingData.children} child(ren))</p>
+        <p><strong>Room type:</strong> ${bookingData.roomType}</p>
+        <p><strong>Stay:</strong> ${stayText}</p>
+      </div>
+    `,
+  };
+}
+
+async function sendBookingEmail(bookingData, inquiryId) {
+  const mail = formatBookingEmail(bookingData, inquiryId);
+
+  if (usingResend && resendClient) {
+    await resendClient.emails.send({
+      from: MAIL_FROM,
+      to: CONTACT_EMAIL,
+      replyTo: bookingData.email,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+
+    return;
+  }
+
+  if (transporter) {
+    await transporter.sendMail({
+      from: `"Doctors Farms Website" <${MAIL_FROM}>`,
+      to: CONTACT_EMAIL,
+      replyTo: bookingData.email,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    });
+  }
+}
 
 /**
  * POST /api/chat
@@ -37,11 +123,12 @@ router.post('/chat', async (req, res) => {
  */
 router.post('/booking-inquiry', async (req, res) => {
   try {
-    const { customerName, phoneNumber, checkInDate, checkOutDate, adults, children, roomType } = req.body;
+    const { customerName, email, phoneNumber, checkInDate, checkOutDate, adults, children, roomType } = req.body;
 
     // Validate booking data
     const bookingData = {
       customerName,
+      email,
       phoneNumber,
       checkInDate,
       checkOutDate,
@@ -61,6 +148,12 @@ router.post('/booking-inquiry', async (req, res) => {
     // Save booking inquiry
     const inquiryId = saveBookingInquiry(bookingData);
 
+    try {
+      await sendBookingEmail(bookingData, inquiryId);
+    } catch (mailError) {
+      console.error('Booking email error:', mailError);
+    }
+
     // Calculate stay duration
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate || checkInDate);
@@ -74,6 +167,7 @@ router.post('/booking-inquiry', async (req, res) => {
       message: 'Booking inquiry submitted successfully',
       bookingSummary: {
         customerName,
+        email,
         checkInDate,
         checkOutDate: checkOutDate || checkInDate,
         guests: `${adults} adult(s), ${children} child(ren)`,

@@ -7,6 +7,7 @@ interface BookingFormProps {
 
 interface BookingData {
   customerName: string;
+  email: string;
   phoneNumber: string;
   checkInDate: string;
   checkOutDate: string;
@@ -18,6 +19,7 @@ interface BookingData {
 export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
   const [formData, setFormData] = useState<BookingData>({
     customerName: '',
+    email: '',
     phoneNumber: '',
     checkInDate: '',
     checkOutDate: '',
@@ -36,7 +38,7 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.customerName || !formData.phoneNumber || !formData.checkInDate) {
+    if (!formData.customerName || !formData.email || !formData.phoneNumber || !formData.checkInDate) {
       alert('Please fill in all required fields');
       return;
     }
@@ -67,6 +69,18 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
             onChange={handleChange}
             placeholder="10-digit mobile number"
             pattern="[0-9]{10}"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Email *</label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="Your email address"
             required
           />
         </div>

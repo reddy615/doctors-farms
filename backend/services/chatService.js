@@ -141,6 +141,10 @@ function validateBookingData(data) {
     errors.push('Customer name is required');
   }
 
+  if (!data.email || !/^\S+@\S+\.\S+$/.test(data.email)) {
+    errors.push('Valid email address is required');
+  }
+
   if (!data.phoneNumber || !/^\d{10}$/.test(data.phoneNumber)) {
     errors.push('Valid 10-digit phone number is required');
   }
@@ -176,8 +180,22 @@ function saveBookingInquiry(bookingData) {
   }
 
   // Create new inquiry
+  const totalGuests = Number(bookingData.adults || 0) + Number(bookingData.children || 0);
   const newInquiry = {
     id: `INQ_${Date.now()}`,
+    name: bookingData.customerName,
+    email: bookingData.email,
+    phone: bookingData.phoneNumber,
+    stay: bookingData.checkInDate && bookingData.checkOutDate
+      ? `${bookingData.checkInDate} to ${bookingData.checkOutDate}`
+      : bookingData.checkInDate || 'Not provided',
+    checkIn: bookingData.checkInDate || '',
+    checkOut: bookingData.checkOutDate || '',
+    roomType: bookingData.roomType || 'Heritage Cottage',
+    adults: Number(bookingData.adults || 1),
+    children: Number(bookingData.children || 0),
+    guests: totalGuests || Number(bookingData.adults || 1),
+    message: bookingData.message || `Booking inquiry from chatbot for ${bookingData.customerName}`,
     ...bookingData,
     createdAt: new Date().toISOString(),
   };
