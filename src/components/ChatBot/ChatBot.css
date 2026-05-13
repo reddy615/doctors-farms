@@ -210,6 +210,21 @@
   margin-bottom: 4px;
 }
 
+.message-content a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.message-bubble.bot .message-content a {
+  color: #0f766e;
+}
+
+.message-bubble.user .message-content a {
+  color: #ffffff;
+}
+
 .message-time {
   font-size: 11px;
   color: #999;
