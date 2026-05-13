@@ -96,6 +96,8 @@
 .chatbot-controls {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .control-btn {
@@ -112,6 +114,17 @@
 
 .control-btn:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.new-chat-btn {
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.new-chat-btn span {
+  white-space: nowrap;
 }
 
 /* Messages Container */

@@ -831,5 +831,24 @@
     "children": 0,
     "roomType": "Heritage Cottage",
     "createdAt": "2026-05-13T16:32:43.044Z"
+  },
+  {
+    "id": "INQ_1778691485867",
+    "name": "AKSHAY POLAREDDY",
+    "email": "2300090002@kluniversity.in",
+    "phone": "9955575969",
+    "stay": "2026-05-13 to 2026-05-14",
+    "checkIn": "2026-05-13",
+    "checkOut": "2026-05-14",
+    "roomType": "Heritage Cottage",
+    "adults": 1,
+    "children": 3,
+    "guests": 4,
+    "message": "Booking inquiry from chatbot for AKSHAY POLAREDDY",
+    "customerName": "AKSHAY POLAREDDY",
+    "phoneNumber": "9955575969",
+    "checkInDate": "2026-05-13",
+    "checkOutDate": "2026-05-14",
+    "createdAt": "2026-05-13T16:58:05.867Z"
   }
 ]

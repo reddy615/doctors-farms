@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Minimize2, Maximize2, Send } from 'lucide-react';
+import { MessageCircle, X, Minimize2, Maximize2, Send, Plus } from 'lucide-react';
 import axios from 'axios';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
@@ -18,24 +18,83 @@ interface Message {
 type ChatState = 'closed' | 'open' | 'minimized';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const CHAT_HISTORY_STORAGE_KEY = 'doctors-farms-chat-history';
 
-export default function ChatBotWidget() {
-  const [chatState, setChatState] = useState<ChatState>('closed');
-  const [messages, setMessages] = useState<Message[]>([
+const defaultMessages: Message[] = [
+  {
+    id: '1',
+    text: 'Welcome to Doctors Farms Resort 🌴\nHow can I assist you today?',
+    sender: 'bot',
+    timestamp: new Date(),
+  },
+];
+
+function loadStoredMessages(): Message[] {
+  if (typeof window === 'undefined') return defaultMessages;
+
+  try {
+    const stored = window.localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
+    if (!stored) return defaultMessages;
+
+    const parsed = JSON.parse(stored) as Array<Omit<Message, 'timestamp'> & { timestamp: string }>;
+    if (!Array.isArray(parsed) || parsed.length === 0) return defaultMessages;
+
+    return parsed.map((message) => ({
+      ...message,
+      timestamp: new Date(message.timestamp),
+    }));
+  } catch (error) {
+    console.error('Failed to load chat history:', error);
+    return defaultMessages;
+  }
+}
+
+function createDefaultMessages(): Message[] {
+  return [
     {
       id: '1',
       text: 'Welcome to Doctors Farms Resort 🌴\nHow can I assist you today?',
       sender: 'bot',
       timestamp: new Date(),
     },
-  ]);
+  ];
+}
+
+export default function ChatBotWidget() {
+  const [chatState, setChatState] = useState<ChatState>('closed');
+  const [messages, setMessages] = useState<Message[]>(loadStoredMessages);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasHydratedRef = useRef(false);
+
+  const resetChat = () => {
+    const freshMessages = createDefaultMessages();
+    setMessages(freshMessages);
+    setInput('');
+    setLoading(false);
+    setShowBookingForm(false);
+    setChatState('open');
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(CHAT_HISTORY_STORAGE_KEY);
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (!hasHydratedRef.current) {
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    window.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(messages));
   }, [messages]);
 
   const generateId = () => `msg_${Date.now()}_${Math.random()}`;
@@ -162,6 +221,10 @@ export default function ChatBotWidget() {
               <p>Online - Ready to help</p>
             </div>
             <div className="chatbot-controls">
+              <button onClick={resetChat} className="control-btn new-chat-btn" title="Start new chat">
+                <Plus size={16} />
+                <span>New Chat</span>
+              </button>
               <button
                 onClick={() => setChatState(chatState === 'minimized' ? 'open' : 'minimized')}
                 className="control-btn"
