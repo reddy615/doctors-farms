@@ -820,5 +820,16 @@
     "status": "unpaid",
     "createdAt": "2026-04-22T10:26:08.943Z",
     "payment": null
+  },
+  {
+    "id": "INQ_1778689963044",
+    "customerName": "reddy",
+    "phoneNumber": "9955575969",
+    "checkInDate": "2026-05-13",
+    "checkOutDate": "2026-05-14",
+    "adults": 1,
+    "children": 0,
+    "roomType": "Heritage Cottage",
+    "createdAt": "2026-05-13T16:32:43.044Z"
   }
 ]

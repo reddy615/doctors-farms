@@ -32,7 +32,7 @@ const FAQ_DATABASE = {
   },
   'contact': {
     keywords: ['contact', 'support', 'help', 'call', 'phone', 'email', 'reach'],
-    response: 'Contact us:\n📞 +91-XXXXXXXXXX\n📧 info@doctorsfarms.in\nOr use the booking form to schedule a callback from our team.',
+    response: 'Contact us:\n📞 +91-9955575969\n📧 doctorsfarms686@gmail.com\nOr use the booking form to schedule a callback from our team.',
   },
   'family': {
     keywords: ['family', 'children', 'kids', 'family group', 'how many'],
