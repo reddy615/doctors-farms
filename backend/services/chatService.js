@@ -136,6 +136,7 @@ async function handleChatMessage(userMessage, conversationHistory = [], messageT
  */
 function validateBookingData(data) {
   const errors = [];
+  const phoneDigits = String(data.phoneNumber || '').replace(/\D/g, '');
 
   if (!data.customerName || data.customerName.trim().length < 2) {
     errors.push('Customer name is required');
@@ -145,8 +146,8 @@ function validateBookingData(data) {
     errors.push('Valid email address is required');
   }
 
-  if (!data.phoneNumber || !/^\d{10}$/.test(data.phoneNumber)) {
-    errors.push('Valid 10-digit phone number is required');
+  if (!phoneDigits || !(phoneDigits.length === 10 || (phoneDigits.length === 12 && phoneDigits.startsWith('91')))) {
+    errors.push('Valid phone number is required');
   }
 
   if (!data.checkInDate) {
@@ -166,6 +167,7 @@ function validateBookingData(data) {
 function saveBookingInquiry(bookingData) {
   const fs = require('fs');
   const filePath = path.join(__dirname, '../inquiries.json');
+  const normalizedPhone = String(bookingData.phoneNumber || '').replace(/\s+/g, ' ').trim();
 
   let inquiries = [];
 
@@ -185,7 +187,7 @@ function saveBookingInquiry(bookingData) {
     id: `INQ_${Date.now()}`,
     name: bookingData.customerName,
     email: bookingData.email,
-    phone: bookingData.phoneNumber,
+    phone: normalizedPhone,
     stay: bookingData.checkInDate && bookingData.checkOutDate
       ? `${bookingData.checkInDate} to ${bookingData.checkOutDate}`
       : bookingData.checkInDate || 'Not provided',
@@ -197,6 +199,7 @@ function saveBookingInquiry(bookingData) {
     guests: totalGuests || Number(bookingData.adults || 1),
     message: bookingData.message || `Booking inquiry from chatbot for ${bookingData.customerName}`,
     ...bookingData,
+    phoneNumber: normalizedPhone,
     createdAt: new Date().toISOString(),
   };
 

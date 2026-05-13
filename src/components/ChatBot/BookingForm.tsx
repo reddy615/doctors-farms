@@ -68,7 +68,8 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
             value={formData.phoneNumber}
             onChange={handleChange}
             placeholder="10-digit mobile number"
-            pattern="[0-9]{10}"
+            inputMode="tel"
+            autoComplete="tel"
             required
           />
         </div>
@@ -81,6 +82,7 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
             value={formData.email}
             onChange={handleChange}
             placeholder="Your email address"
+            autoComplete="email"
             required
           />
         </div>

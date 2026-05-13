@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Minimize2, Maximize2, Send, Plus } from 'lucide-react';
-import axios from 'axios';
 import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import QuickActions from './QuickActions';
 import BookingForm from './BookingForm';
+import { apiFetch } from '../../config/api';
 import './ChatBot.css';
 
 interface Message {
@@ -17,7 +17,6 @@ interface Message {
 
 type ChatState = 'closed' | 'open' | 'minimized';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 const CHAT_HISTORY_STORAGE_KEY = 'doctors-farms-chat-history';
 
 const defaultMessages: Message[] = [
@@ -135,18 +134,23 @@ export default function ChatBotWidget() {
   const sendMessageToAI = async (userMessage: string, type: string = 'general') => {
     setLoading(true);
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/chat`, {
+      const response = await apiFetch('/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({
         message: userMessage,
         conversationHistory: messages.map((m) => ({
           role: m.sender === 'user' ? 'user' : 'assistant',
           content: m.text,
         })),
         messageType: type,
+        }),
       });
+
+      const responseData = await response.json();
 
       const botMsg: Message = {
         id: generateId(),
-        text: response.data.reply,
+        text: responseData.reply,
         sender: 'bot',
         timestamp: new Date(),
       };
@@ -183,11 +187,16 @@ export default function ChatBotWidget() {
 
   const handleBookingSubmit = async (bookingData: any) => {
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/booking-inquiry`, bookingData);
+      const response = await apiFetch('/api/booking-inquiry', {
+        method: 'POST',
+        body: JSON.stringify(bookingData),
+      });
+
+      const responseData = await response.json();
       
       const confirmMsg: Message = {
         id: generateId(),
-        text: `Great! Your booking inquiry has been submitted. Confirmation ID: ${response.data.inquiryId}. Our team will contact you shortly.`,
+        text: `Great! Your booking inquiry has been submitted. Confirmation ID: ${responseData.inquiryId}. Our team will contact you shortly.`,
         sender: 'bot',
         timestamp: new Date(),
       };
@@ -197,7 +206,7 @@ export default function ChatBotWidget() {
       console.error('Booking error:', error);
       const errorMsg: Message = {
         id: generateId(),
-        text: 'Error submitting booking. Please try again.',
+        text: error instanceof Error ? `Error submitting booking. ${error.message}` : 'Error submitting booking. Please try again.',
         sender: 'bot',
         timestamp: new Date(),
       };
