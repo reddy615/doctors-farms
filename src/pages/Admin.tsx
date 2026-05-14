@@ -30,6 +30,10 @@ export default function Admin() {
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const normalizeSearchText = (value: unknown) => String(value ?? '').toLowerCase().replace(/[^a-z0-9@._-]/g, '');
+  const extractInquiryId = (value: string) => {
+    const match = value.match(/inq[_-]?\d+(?:[_-]\d+)?/i);
+    return match ? normalizeSearchText(match[0]) : '';
+  };
   const formatDateTime = (val?: string) => {
     if (!val) return '';
     try {
@@ -123,6 +127,11 @@ export default function Admin() {
   const filteredInquiries = inquiries.filter((inquiry) => {
     const query = normalizeSearchText(searchTerm.trim());
     if (!query) return true;
+    const extractedId = extractInquiryId(searchTerm);
+
+    if (extractedId && normalizeSearchText(inquiry.id).includes(extractedId)) {
+      return true;
+    }
 
     return [
       inquiry.id,
