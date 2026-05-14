@@ -14,6 +14,6 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    allowedHosts: ['.onrender.com', 'doctors-farms-frontend-production.up.railway.app'],
+    allowedHosts: ['.onrender.com', 'doctors-farms-frontend-production.up.railway.app', 'doctors-farms-production.up.railway.app'],
   },
 });
