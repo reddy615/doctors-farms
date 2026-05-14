@@ -148,11 +148,82 @@ router.post('/booking-inquiry', async (req, res) => {
     // Save booking inquiry
     const inquiryId = saveBookingInquiry(bookingData);
 
+    // mark inquiry as queued for email
     try {
-      await sendBookingEmail(bookingData, inquiryId);
-    } catch (mailError) {
-      console.error('Booking email error:', mailError);
+      const fs = require('fs');
+      const filePath = path.join(__dirname, '../inquiries.json');
+      if (fs.existsSync(filePath)) {
+        const data = fs.readFileSync(filePath, 'utf-8');
+        const inquiries = JSON.parse(data || '[]');
+        const idx = inquiries.findIndex((i) => i.id === inquiryId);
+        if (idx !== -1) {
+          inquiries[idx].emailStatus = 'queued';
+          fs.writeFileSync(filePath, JSON.stringify(inquiries, null, 2));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to mark inquiry queued:', err);
     }
+
+    // Respond immediately to avoid client-side timeout; send emails in background
+    res.json({
+      success: true,
+      inquiryId,
+      message: 'Booking inquiry submitted successfully (email queued)',
+    });
+
+    // Background email send with retries and timeout
+    (async function sendBookingEmailBackground() {
+      // helper: retry wrapper with per-attempt timeout
+      const sendWithRetry = async (fn, attempts = 3, timeoutMs = 20000, delays = [2000, 5000]) => {
+        for (let attempt = 1; attempt <= attempts; attempt++) {
+          try {
+            const result = await Promise.race([
+              fn(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('send_timeout')), timeoutMs)),
+            ]);
+            return result;
+          } catch (err) {
+            const isLast = attempt === attempts;
+            console.error(`Booking email attempt ${attempt} failed:`, err instanceof Error ? err.message : String(err));
+            if (isLast) throw err;
+            const delay = delays[Math.min(attempt - 1, delays.length - 1)];
+            await new Promise((r) => setTimeout(r, delay));
+          }
+        }
+      };
+
+      let emailSendFailed = false;
+      try {
+        if (usingResend && resendClient) {
+          await sendWithRetry(() => resendClient.emails.send({ from: MAIL_FROM, to: CONTACT_EMAIL, replyTo: bookingData.email, subject: formatBookingEmail(bookingData, inquiryId).subject, text: formatBookingEmail(bookingData, inquiryId).text, html: formatBookingEmail(bookingData, inquiryId).html }));
+        } else if (transporter) {
+          await sendWithRetry(() => transporter.sendMail({ from: `"Doctors Farms Website" <${MAIL_FROM}>`, to: CONTACT_EMAIL, replyTo: bookingData.email, subject: formatBookingEmail(bookingData, inquiryId).subject, text: formatBookingEmail(bookingData, inquiryId).text, html: formatBookingEmail(bookingData, inquiryId).html }));
+        } else {
+          throw new Error('Mail transporter not configured');
+        }
+      } catch (err) {
+        emailSendFailed = true;
+        console.error('Booking background email error:', err);
+      }
+
+      // update inquiry status
+      try {
+        const fs = require('fs');
+        const filePath = path.join(__dirname, '../inquiries.json');
+        if (fs.existsSync(filePath)) {
+          const data = fs.readFileSync(filePath, 'utf-8');
+          const inquiries = JSON.parse(data || '[]');
+          const idx = inquiries.findIndex((i) => i.id === inquiryId);
+          if (idx !== -1) {
+            inquiries[idx].emailStatus = emailSendFailed ? 'delayed' : 'sent';
+            fs.writeFileSync(filePath, JSON.stringify(inquiries, null, 2));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to update inquiry status after email send:', err);
+      }
+    })();
 
     // Calculate stay duration
     const checkIn = new Date(checkInDate);
@@ -160,11 +231,9 @@ router.post('/booking-inquiry', async (req, res) => {
     const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)) || 1;
     const PRICE_PER_NIGHT = 15000;
     const totalPrice = nights * PRICE_PER_NIGHT;
-
     res.json({
       success: true,
       inquiryId,
-      message: 'Booking inquiry submitted successfully',
       bookingSummary: {
         customerName,
         email,
