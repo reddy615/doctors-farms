@@ -29,7 +29,7 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const normalizeSearchText = (value: string) => value.toLowerCase().replace(/[^a-z0-9@._-]/g, '');
+  const normalizeSearchText = (value: unknown) => String(value ?? '').toLowerCase().replace(/[^a-z0-9@._-]/g, '');
   const formatDateTime = (val?: string) => {
     if (!val) return '';
     try {
