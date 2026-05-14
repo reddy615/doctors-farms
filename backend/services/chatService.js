@@ -16,7 +16,7 @@ const FAQ_DATABASE = {
   },
   'room-price': {
     keywords: ['price', 'cost', 'how much', 'rate', 'charges'],
-    response: 'Our Heritage Cottage is priced at ₹15,000 per night. This includes organic breakfast and access to all resort facilities. Prices may vary during peak seasons.',
+    response: 'Our Heritage Cottage is priced at ₹15,000 for 24 Hours. This includes organic breakfast and access to all resort facilities. Prices may vary during peak seasons.',
   },
   'pool': {
     keywords: ['pool', 'swimming', 'water', 'swim'],
@@ -81,7 +81,7 @@ async function callOpenAI(messages) {
 Resort Information:
 - Name: Doctors Farms Resort
 - Type: Eco-friendly luxury resort with farm-stay experience
-- Main Room: Heritage Cottage - ₹15,000/night
+- Main Room: Heritage Cottage - ₹15,000 for 24 Hours
 - Facilities: Swimming pool, yoga studio, meditation area, farm tours, organic dining
 - Check-in: 2 PM, Check-out: 11 AM
 - Activities: Yoga, meditation, farm activities, nature walks
