@@ -16,6 +16,7 @@ interface BookingData {
   adults: number;
   children: number;
   roomType: string;
+  totalPrice: number;
 }
 
 interface BookingFormState {
