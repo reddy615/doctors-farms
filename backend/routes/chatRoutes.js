@@ -61,6 +61,44 @@ function formatBookingEmail(bookingData, inquiryId) {
   };
 }
 
+function formatGuestConfirmationEmail(bookingData, inquiryId) {
+  const guestCount = Number(bookingData.adults || 1) + Number(bookingData.children || 0);
+  const stayText = bookingData.checkInDate && bookingData.checkOutDate
+    ? `${bookingData.checkInDate} to ${bookingData.checkOutDate}`
+    : bookingData.checkInDate || 'Not provided';
+
+  return {
+    subject: `Your booking inquiry ${inquiryId} has been received`,
+    text: `Hi ${bookingData.customerName},
+
+Thanks for contacting Doctors Farms Resort. We received your booking inquiry and our team will contact you shortly.
+
+Inquiry ID: ${inquiryId}
+Room type: ${bookingData.roomType || 'Heritage Cottage'}
+Check-in: ${bookingData.checkInDate || 'Not provided'}
+Check-out: ${bookingData.checkOutDate || 'Not provided'}
+Guests: ${guestCount} (${bookingData.adults || 1} adult(s), ${bookingData.children || 0} child(ren))
+Stay: ${stayText}
+
+Regards,
+Doctors Farms Team`,
+    html: `
+      <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
+        <h2>Booking Inquiry Received</h2>
+        <p>Hi ${bookingData.customerName},</p>
+        <p>Thanks for contacting Doctors Farms Resort. We received your booking inquiry and our team will contact you shortly.</p>
+        <p><strong>Inquiry ID:</strong> ${inquiryId}</p>
+        <p><strong>Room type:</strong> ${bookingData.roomType || 'Heritage Cottage'}</p>
+        <p><strong>Check-in:</strong> ${bookingData.checkInDate || 'Not provided'}</p>
+        <p><strong>Check-out:</strong> ${bookingData.checkOutDate || 'Not provided'}</p>
+        <p><strong>Guests:</strong> ${guestCount} (${bookingData.adults || 1} adult(s), ${bookingData.children || 0} child(ren))</p>
+        <p><strong>Stay:</strong> ${stayText}</p>
+        <p>Regards,<br>Doctors Farms Team</p>
+      </div>
+    `,
+  };
+}
+
 async function sendBookingEmail(bookingData, inquiryId) {
   const mail = formatBookingEmail(bookingData, inquiryId);
 
@@ -197,8 +235,10 @@ router.post('/booking-inquiry', async (req, res) => {
       try {
         if (usingResend && resendClient) {
           await sendWithRetry(() => resendClient.emails.send({ from: MAIL_FROM, to: CONTACT_EMAIL, replyTo: bookingData.email, subject: formatBookingEmail(bookingData, inquiryId).subject, text: formatBookingEmail(bookingData, inquiryId).text, html: formatBookingEmail(bookingData, inquiryId).html }));
+          await sendWithRetry(() => resendClient.emails.send({ from: MAIL_FROM, to: bookingData.email, subject: formatGuestConfirmationEmail(bookingData, inquiryId).subject, text: formatGuestConfirmationEmail(bookingData, inquiryId).text, html: formatGuestConfirmationEmail(bookingData, inquiryId).html }));
         } else if (transporter) {
           await sendWithRetry(() => transporter.sendMail({ from: `"Doctors Farms Website" <${MAIL_FROM}>`, to: CONTACT_EMAIL, replyTo: bookingData.email, subject: formatBookingEmail(bookingData, inquiryId).subject, text: formatBookingEmail(bookingData, inquiryId).text, html: formatBookingEmail(bookingData, inquiryId).html }));
+          await sendWithRetry(() => transporter.sendMail({ from: `"Doctors Farms Website" <${MAIL_FROM}>`, to: bookingData.email, subject: formatGuestConfirmationEmail(bookingData, inquiryId).subject, text: formatGuestConfirmationEmail(bookingData, inquiryId).text, html: formatGuestConfirmationEmail(bookingData, inquiryId).html }));
         } else {
           throw new Error('Mail transporter not configured');
         }
@@ -224,26 +264,6 @@ router.post('/booking-inquiry', async (req, res) => {
         console.error('Failed to update inquiry status after email send:', err);
       }
     })();
-
-    // Calculate stay duration
-    const checkIn = new Date(checkInDate);
-    const checkOut = new Date(checkOutDate || checkInDate);
-    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)) || 1;
-    const PRICE_PER_NIGHT = 15000;
-    const totalPrice = nights * PRICE_PER_NIGHT;
-    res.json({
-      success: true,
-      inquiryId,
-      bookingSummary: {
-        customerName,
-        email,
-        checkInDate,
-        checkOutDate: checkOutDate || checkInDate,
-        guests: `${adults} adult(s), ${children} child(ren)`,
-        nights,
-        totalPrice: `₹${totalPrice.toLocaleString('en-IN')}`,
-      },
-    });
   } catch (error) {
     console.error('Booking inquiry error:', error);
     res.status(500).json({
