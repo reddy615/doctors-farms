@@ -10,7 +10,8 @@
     "dev": "npm --prefix backend run dev",
     "dev:full": "npm run dev",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "vite preview --host 0.0.0.0 --port $PORT"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.1",
