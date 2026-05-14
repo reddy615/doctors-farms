@@ -43,7 +43,7 @@ function formatBookingEmail(bookingData, inquiryId) {
 
   return {
     subject: `New booking inquiry from ${bookingData.customerName}`,
-    text: `New booking inquiry received\n\nInquiry ID: ${inquiryId}\nName: ${bookingData.customerName}\nEmail: ${bookingData.email}\nPhone: ${bookingData.phoneNumber}\nCheck-in: ${bookingData.checkInDate}\nCheck-out: ${bookingData.checkOutDate || 'Not provided'}\nGuests: ${guestCount} (${bookingData.adults} adult(s), ${bookingData.children} child(ren))\nRoom type: ${bookingData.roomType}\nStay: ${stayText}`,
+    text: `New booking inquiry received\n\nInquiry ID: ${inquiryId}\nName: ${bookingData.customerName}\nEmail: ${bookingData.email}\nPhone: ${bookingData.phoneNumber}\nCheck-in: ${bookingData.checkInDate} ${bookingData.checkInTime || ''}\nCheck-out: ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}\nGuests: ${guestCount} (${bookingData.adults} adult(s), ${bookingData.children} child(ren))\nRoom type: ${bookingData.roomType}\nStay: ${stayText}`,
     html: `
       <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
         <h2>New Booking Inquiry</h2>
@@ -51,8 +51,8 @@ function formatBookingEmail(bookingData, inquiryId) {
         <p><strong>Name:</strong> ${bookingData.customerName}</p>
         <p><strong>Email:</strong> ${bookingData.email}</p>
         <p><strong>Phone:</strong> ${bookingData.phoneNumber}</p>
-        <p><strong>Check-in:</strong> ${bookingData.checkInDate}</p>
-        <p><strong>Check-out:</strong> ${bookingData.checkOutDate || 'Not provided'}</p>
+        <p><strong>Check-in:</strong> ${bookingData.checkInDate} ${bookingData.checkInTime || ''}</p>
+        <p><strong>Check-out:</strong> ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}</p>
         <p><strong>Guests:</strong> ${guestCount} (${bookingData.adults} adult(s), ${bookingData.children} child(ren))</p>
         <p><strong>Room type:</strong> ${bookingData.roomType}</p>
         <p><strong>Stay:</strong> ${stayText}</p>
@@ -75,8 +75,8 @@ Thanks for contacting Doctors Farms Resort. We received your booking inquiry and
 
 Inquiry ID: ${inquiryId}
 Room type: ${bookingData.roomType || 'Heritage Cottage'}
-Check-in: ${bookingData.checkInDate || 'Not provided'}
-Check-out: ${bookingData.checkOutDate || 'Not provided'}
+  Check-in: ${bookingData.checkInDate || 'Not provided'} ${bookingData.checkInTime || ''}
+  Check-out: ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}
 Guests: ${guestCount} (${bookingData.adults || 1} adult(s), ${bookingData.children || 0} child(ren))
 Stay: ${stayText}
 
@@ -89,8 +89,8 @@ Doctors Farms Team`,
         <p>Thanks for contacting Doctors Farms Resort. We received your booking inquiry and our team will contact you shortly.</p>
         <p><strong>Inquiry ID:</strong> ${inquiryId}</p>
         <p><strong>Room type:</strong> ${bookingData.roomType || 'Heritage Cottage'}</p>
-        <p><strong>Check-in:</strong> ${bookingData.checkInDate || 'Not provided'}</p>
-        <p><strong>Check-out:</strong> ${bookingData.checkOutDate || 'Not provided'}</p>
+        <p><strong>Check-in:</strong> ${bookingData.checkInDate || 'Not provided'} ${bookingData.checkInTime || ''}</p>
+        <p><strong>Check-out:</strong> ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}</p>
         <p><strong>Guests:</strong> ${guestCount} (${bookingData.adults || 1} adult(s), ${bookingData.children || 0} child(ren))</p>
         <p><strong>Stay:</strong> ${stayText}</p>
         <p>Regards,<br>Doctors Farms Team</p>
@@ -161,7 +161,7 @@ router.post('/chat', async (req, res) => {
  */
 router.post('/booking-inquiry', async (req, res) => {
   try {
-    const { customerName, email, phoneNumber, checkInDate, checkOutDate, adults, children, roomType } = req.body;
+    const { customerName, email, phoneNumber, checkInDate, checkInTime, checkOutDate, checkOutTime, adults, children, roomType } = req.body;
 
     // Validate booking data
     const bookingData = {
@@ -169,7 +169,9 @@ router.post('/booking-inquiry', async (req, res) => {
       email,
       phoneNumber,
       checkInDate,
+      checkInTime,
       checkOutDate,
+      checkOutTime,
       adults,
       children,
       roomType,

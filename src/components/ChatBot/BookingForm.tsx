@@ -10,7 +10,9 @@ interface BookingData {
   email: string;
   phoneNumber: string;
   checkInDate: string;
+  checkInTime: string;
   checkOutDate: string;
+  checkOutTime: string;
   adults: number;
   children: number;
   roomType: string;
@@ -22,7 +24,9 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
     email: '',
     phoneNumber: '',
     checkInDate: '',
+    checkInTime: '',
     checkOutDate: '',
+    checkOutTime: '',
     adults: 1,
     children: 0,
     roomType: 'Heritage Cottage',
@@ -100,6 +104,17 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
         </div>
 
         <div className="form-group">
+          <label>Check-in Time *</label>
+          <input
+            type="time"
+            name="checkInTime"
+            value={formData.checkInTime}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div className="form-group">
           <label>Check-out Date *</label>
           <input
             type="date"
@@ -107,6 +122,17 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
             value={formData.checkOutDate}
             onChange={handleChange}
             min={formData.checkInDate || new Date().toISOString().split('T')[0]}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Check-out Time *</label>
+          <input
+            type="time"
+            name="checkOutTime"
+            value={formData.checkOutTime}
+            onChange={handleChange}
+            required
           />
         </div>
 
