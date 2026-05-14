@@ -470,70 +470,73 @@ async function submitInquiry(req, res) {
       let userInfo = null;
       let emailSendFailed = false;
 
-      const trySendWithResend = async (emailData, recipientType) => {
-        let lastError = null;
-
-        try {
-          console.log(`📧 [RESEND] Attempting to send ${recipientType} email from ${MAIL_FROM}`);
-          const result = await resendClient.emails.send({ from: MAIL_FROM, ...emailData });
-          if (result?.error) {
-            lastError = result.error.message || 'Unknown Resend error';
-            console.error(`❌ [RESEND] ${recipientType} email failed with MAIL_FROM: ${lastError}`);
-          } else if (result?.id) {
-            console.log(`✅ [RESEND] ${recipientType} email sent successfully. ID: ${result.id}`);
-            return result;
-          }
-        } catch (err) {
-          lastError = err instanceof Error ? err.message : String(err);
-          console.error(`❌ [RESEND] ${recipientType} email error with MAIL_FROM: ${lastError}`);
-        }
-
-        if (lastError && MAIL_FROM !== CONTACT_EMAIL) {
+      // helper: attempt a send function with retries and per-attempt timeout
+      const sendWithRetry = async (sendFn, attempts = 3, timeoutMs = 20000, delays = [2000, 5000]) => {
+        for (let attempt = 1; attempt <= attempts; attempt++) {
           try {
-            console.log(`📧 [RESEND] Retrying ${recipientType} email from fallback: ${CONTACT_EMAIL}`);
-            const result = await resendClient.emails.send({ from: CONTACT_EMAIL, ...emailData });
-            if (result?.error) {
-              lastError = result.error.message || 'Unknown Resend error';
-              console.error(`❌ [RESEND] ${recipientType} email failed with fallback: ${lastError}`);
-            } else if (result?.id) {
-              console.log(`✅ [RESEND] ${recipientType} email sent with fallback. ID: ${result.id}`);
-              return result;
-            }
+            const result = await Promise.race([
+              sendFn(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('send_timeout')), timeoutMs)),
+            ]);
+            return result;
           } catch (err) {
-            lastError = err instanceof Error ? err.message : String(err);
-            console.error(`❌ [RESEND] ${recipientType} email error with fallback: ${lastError}`);
+            const isLast = attempt === attempts;
+            console.error(`❌ Email send attempt ${attempt} failed:`, err instanceof Error ? err.message : String(err));
+            if (isLast) throw err;
+            const delay = delays[Math.min(attempt - 1, delays.length - 1)];
+            await new Promise((r) => setTimeout(r, delay));
           }
         }
-
-        throw new Error(lastError || `Failed to send ${recipientType} email`);
       };
 
       if (usingResend) {
+        // send admin email, try MAIL_FROM then fallback to CONTACT_EMAIL
         try {
-          adminInfo = await trySendWithResend({ to: ADMIN_EMAILS, replyTo: email, subject: adminMail.subject, text: adminMail.text, html: adminMail.html }, 'admin');
-        } catch (emailError) {
-          smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
-          emailSendFailed = true;
+          adminInfo = await sendWithRetry(() => resendClient.emails.send({ from: MAIL_FROM, to: ADMIN_EMAILS, replyTo: email, subject: adminMail.subject, text: adminMail.text, html: adminMail.html }));
+        } catch (err) {
+          console.warn('Primary resend failed for admin, trying fallback if configured');
+          if (MAIL_FROM !== CONTACT_EMAIL) {
+            try {
+              adminInfo = await sendWithRetry(() => resendClient.emails.send({ from: CONTACT_EMAIL, to: ADMIN_EMAILS, replyTo: email, subject: adminMail.subject, text: adminMail.text, html: adminMail.html }));
+            } catch (err2) {
+              smtpLastError = err2 instanceof Error ? err2.message : String(err2);
+              emailSendFailed = true;
+            }
+          } else {
+            smtpLastError = err instanceof Error ? err.message : String(err);
+            emailSendFailed = true;
+          }
         }
 
+        // send user email
         try {
-          userInfo = await trySendWithResend({ to: [email], subject: userMail.subject, text: userMail.text, html: userMail.html }, 'user');
-        } catch (emailError) {
-          smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
-          emailSendFailed = true;
+          userInfo = await sendWithRetry(() => resendClient.emails.send({ from: MAIL_FROM, to: [email], subject: userMail.subject, text: userMail.text, html: userMail.html }));
+        } catch (err) {
+          if (MAIL_FROM !== CONTACT_EMAIL) {
+            try {
+              userInfo = await sendWithRetry(() => resendClient.emails.send({ from: CONTACT_EMAIL, to: [email], subject: userMail.subject, text: userMail.text, html: userMail.html }));
+            } catch (err2) {
+              smtpLastError = err2 instanceof Error ? err2.message : String(err2);
+              emailSendFailed = true;
+            }
+          } else {
+            smtpLastError = err instanceof Error ? err.message : String(err);
+            emailSendFailed = true;
+          }
         }
       } else {
+        // SMTP transporter with retries and timeout
         try {
-          adminInfo = await transporter.sendMail(adminMail);
-        } catch (emailError) {
-          console.error('Admin mail failed:', emailError);
+          adminInfo = await sendWithRetry(() => transporter.sendMail(adminMail));
+        } catch (err) {
+          smtpLastError = err instanceof Error ? err.message : String(err);
           emailSendFailed = true;
         }
 
         try {
-          userInfo = await transporter.sendMail(userMail);
-        } catch (emailError) {
-          console.error('User mail failed:', emailError);
+          userInfo = await sendWithRetry(() => transporter.sendMail(userMail));
+        } catch (err) {
+          smtpLastError = err instanceof Error ? err.message : String(err);
           emailSendFailed = true;
         }
       }
