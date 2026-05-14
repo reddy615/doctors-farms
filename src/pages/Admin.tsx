@@ -29,6 +29,7 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const normalizeSearchText = (value: string) => value.toLowerCase().replace(/[^a-z0-9@._-]/g, '');
   const formatDateTime = (val?: string) => {
     if (!val) return '';
     try {
@@ -120,7 +121,7 @@ export default function Admin() {
   }, [isAuthenticated]);
 
   const filteredInquiries = inquiries.filter((inquiry) => {
-    const query = searchTerm.trim().toLowerCase();
+    const query = normalizeSearchText(searchTerm.trim());
     if (!query) return true;
 
     return [
@@ -133,7 +134,7 @@ export default function Admin() {
       inquiry.status,
       inquiry.message,
       formatDateTime(inquiry.createdAt),
-    ].some((value) => value.toLowerCase().includes(query));
+    ].some((value) => normalizeSearchText(value).includes(query));
   });
 
   if (!isAuthenticated) {
@@ -163,9 +164,11 @@ export default function Admin() {
             </label>
             <input
               id="inquiry-search"
-              type="search"
+              type="text"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
+              autoComplete="off"
+              spellCheck={false}
               placeholder="Search by name, email, room type, status, or ID"
               className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
             />
