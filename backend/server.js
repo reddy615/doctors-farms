@@ -597,6 +597,31 @@ app.get('/api/admins', (req, res) => {
   res.json({ success: true, admins });
 });
 
+// Admin: Mail metrics - counts of inquiry email statuses and last SMTP error
+app.get('/api/admin/mail-metrics', (req, res) => {
+  try {
+    const inquiries = readInquiries();
+    const counts = inquiries.reduce((acc, i) => {
+      const status = i.emailStatus || 'unknown';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      metrics: {
+        totalInquiries: inquiries.length,
+        emailStatusCounts: counts,
+        lastSmtpError: smtpLastError || null,
+        smtpVerified: usingResend ? !!resendClient : smtpVerified,
+        mailProvider: MAIL_PROVIDER,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
 /* ----------------------------- PHONEPE ----------------------------- */
 
 const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'YOUR_MERCHANT_ID';
