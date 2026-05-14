@@ -43,7 +43,7 @@ function formatBookingEmail(bookingData, inquiryId) {
 
   return {
     subject: `New booking inquiry from ${bookingData.customerName}`,
-    text: `New booking inquiry received\n\nInquiry ID: ${inquiryId}\nName: ${bookingData.customerName}\nEmail: ${bookingData.email}\nPhone: ${bookingData.phoneNumber}\nCheck-in: ${bookingData.checkInDate} ${bookingData.checkInTime || ''}\nCheck-out: ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}\nGuests: ${guestCount} (${bookingData.adults} adult(s), ${bookingData.children} child(ren))\nRoom type: ${bookingData.roomType}\nStay: ${stayText}`,
+    text: `New booking inquiry received\n\nInquiry ID: ${inquiryId}\nName: ${bookingData.customerName}\nEmail: ${bookingData.email}\nPhone: ${bookingData.phoneNumber}\nCheck-in: ${bookingData.checkInDate} ${bookingData.checkInTime || ''}\nCheck-out: ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}\nGuests: ${guestCount} (${bookingData.adults} adult(s), ${bookingData.children} child(ren))\nRoom type: ${bookingData.roomType}\nTotal Price: ₹${(bookingData.totalPrice || 0).toLocaleString('en-IN')}\nStay: ${stayText}`,
     html: `
       <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
         <h2>New Booking Inquiry</h2>
@@ -55,6 +55,7 @@ function formatBookingEmail(bookingData, inquiryId) {
         <p><strong>Check-out:</strong> ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}</p>
         <p><strong>Guests:</strong> ${guestCount} (${bookingData.adults} adult(s), ${bookingData.children} child(ren))</p>
         <p><strong>Room type:</strong> ${bookingData.roomType}</p>
+        <p><strong>Total Price:</strong> ₹${(bookingData.totalPrice || 0).toLocaleString('en-IN')}</p>
         <p><strong>Stay:</strong> ${stayText}</p>
       </div>
     `,
@@ -75,9 +76,10 @@ Thanks for contacting Doctors Farms Resort. We received your booking inquiry and
 
 Inquiry ID: ${inquiryId}
 Room type: ${bookingData.roomType || 'Heritage Cottage'}
-  Check-in: ${bookingData.checkInDate || 'Not provided'} ${bookingData.checkInTime || ''}
-  Check-out: ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}
+Check-in: ${bookingData.checkInDate || 'Not provided'} ${bookingData.checkInTime || ''}
+Check-out: ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}
 Guests: ${guestCount} (${bookingData.adults || 1} adult(s), ${bookingData.children || 0} child(ren))
+Total Price: ₹${(bookingData.totalPrice || 0).toLocaleString('en-IN')}
 Stay: ${stayText}
 
 Regards,
@@ -92,6 +94,7 @@ Doctors Farms Team`,
         <p><strong>Check-in:</strong> ${bookingData.checkInDate || 'Not provided'} ${bookingData.checkInTime || ''}</p>
         <p><strong>Check-out:</strong> ${bookingData.checkOutDate || 'Not provided'} ${bookingData.checkOutTime || ''}</p>
         <p><strong>Guests:</strong> ${guestCount} (${bookingData.adults || 1} adult(s), ${bookingData.children || 0} child(ren))</p>
+        <p><strong>Total Price:</strong> ₹${(bookingData.totalPrice || 0).toLocaleString('en-IN')}</p>
         <p><strong>Stay:</strong> ${stayText}</p>
         <p>Regards,<br>Doctors Farms Team</p>
       </div>
@@ -161,7 +164,7 @@ router.post('/chat', async (req, res) => {
  */
 router.post('/booking-inquiry', async (req, res) => {
   try {
-    const { customerName, email, phoneNumber, checkInDate, checkInTime, checkOutDate, checkOutTime, adults, children, roomType } = req.body;
+    const { customerName, email, phoneNumber, checkInDate, checkInTime, checkOutDate, checkOutTime, adults, children, roomType, totalPrice } = req.body;
 
     // Validate booking data
     const bookingData = {
@@ -175,6 +178,7 @@ router.post('/booking-inquiry', async (req, res) => {
       adults,
       children,
       roomType,
+      totalPrice: totalPrice || 0,
     };
 
     const errors = validateBookingData(bookingData);

@@ -61,6 +61,34 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
     }));
   };
 
+  const calculatePrice = () => {
+    if (!formData.checkInDate || !formData.checkInHour || !formData.checkOutDate || !formData.checkOutHour) {
+      return 0;
+    }
+
+    const convert12To24 = (hour: string, period: 'AM' | 'PM') => {
+      let h = parseInt(hour);
+      if (period === 'AM' && h === 12) h = 0;
+      if (period === 'PM' && h !== 12) h += 12;
+      return h;
+    };
+
+    const checkInHour24 = convert12To24(formData.checkInHour, formData.checkInPeriod);
+    const checkOutHour24 = convert12To24(formData.checkOutHour, formData.checkOutPeriod);
+
+    const checkInDateTime = new Date(`${formData.checkInDate}T${checkInHour24.toString().padStart(2, '0')}:${formData.checkInMinute}:00`);
+    const checkOutDateTime = new Date(`${formData.checkOutDate}T${checkOutHour24.toString().padStart(2, '0')}:${formData.checkOutMinute}:00`);
+
+    const diffMs = checkOutDateTime.getTime() - checkInDateTime.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    if (diffHours <= 0) return 0;
+    if (diffHours <= 24) return 15000;
+
+    const daysNeeded = Math.ceil(diffHours / 24);
+    return 15000 * daysNeeded;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.customerName || !formData.email || !formData.phoneNumber || !formData.checkInDate || !formData.checkInHour) {
@@ -73,6 +101,8 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
       return `${paddedHour}:${minute} ${period}`;
     };
 
+    const totalPrice = calculatePrice();
+
     onSubmit({
       customerName: formData.customerName,
       email: formData.email,
@@ -84,6 +114,7 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
       adults: formData.adults,
       children: formData.children,
       roomType: formData.roomType,
+      totalPrice: totalPrice,
     });
   };
 
@@ -231,6 +262,15 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
             <option>Heritage Cottage</option>
           </select>
         </div>
+
+        {calculatePrice() > 0 && (
+          <div className="form-group" style={{ backgroundColor: '#f0fdf4', padding: '12px', borderRadius: '8px', borderLeft: '4px solid #16a34a' }}>
+            <strong style={{ color: '#166534' }}>Total Price: ₹{calculatePrice().toLocaleString('en-IN')}</strong>
+            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4b5563' }}>
+              {calculatePrice() === 15000 ? '(For 24 hours)' : `(For ${Math.ceil((new Date(`${formData.checkOutDate}T${(parseInt(formData.checkOutHour) || 0).toString().padStart(2, '0')}:${formData.checkOutMinute}:00`).getTime() - new Date(`${formData.checkInDate}T${(parseInt(formData.checkInHour) || 0).toString().padStart(2, '0')}:${formData.checkInMinute}:00`).getTime()) / (1000 * 60 * 60 * 24))} day(s))`}
+            </p>
+          </div>
+        )}
 
         <div className="form-actions">
           <button type="button" onClick={onCancel} className="cancel-btn">
