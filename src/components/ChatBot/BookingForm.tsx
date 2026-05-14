@@ -18,15 +18,36 @@ interface BookingData {
   roomType: string;
 }
 
+interface BookingFormState {
+  customerName: string;
+  email: string;
+  phoneNumber: string;
+  checkInDate: string;
+  checkInHour: string;
+  checkInMinute: string;
+  checkInPeriod: 'AM' | 'PM';
+  checkOutDate: string;
+  checkOutHour: string;
+  checkOutMinute: string;
+  checkOutPeriod: 'AM' | 'PM';
+  adults: number;
+  children: number;
+  roomType: string;
+}
+
 export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
-  const [formData, setFormData] = useState<BookingData>({
+  const [formData, setFormData] = useState<BookingFormState>({
     customerName: '',
     email: '',
     phoneNumber: '',
     checkInDate: '',
-    checkInTime: '',
+    checkInHour: '',
+    checkInMinute: '00',
+    checkInPeriod: 'AM',
     checkOutDate: '',
-    checkOutTime: '',
+    checkOutHour: '',
+    checkOutMinute: '00',
+    checkOutPeriod: 'AM',
     adults: 1,
     children: 0,
     roomType: 'Heritage Cottage',
@@ -42,11 +63,28 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.customerName || !formData.email || !formData.phoneNumber || !formData.checkInDate) {
+    if (!formData.customerName || !formData.email || !formData.phoneNumber || !formData.checkInDate || !formData.checkInHour) {
       alert('Please fill in all required fields');
       return;
     }
-    onSubmit(formData);
+
+    const format12HourTime = (hour: string, minute: string, period: 'AM' | 'PM') => {
+      const paddedHour = hour.padStart(2, '0');
+      return `${paddedHour}:${minute} ${period}`;
+    };
+
+    onSubmit({
+      customerName: formData.customerName,
+      email: formData.email,
+      phoneNumber: formData.phoneNumber,
+      checkInDate: formData.checkInDate,
+      checkInTime: format12HourTime(formData.checkInHour, formData.checkInMinute, formData.checkInPeriod),
+      checkOutDate: formData.checkOutDate,
+      checkOutTime: formData.checkOutHour ? format12HourTime(formData.checkOutHour, formData.checkOutMinute, formData.checkOutPeriod) : '',
+      adults: formData.adults,
+      children: formData.children,
+      roomType: formData.roomType,
+    });
   };
 
   return (
@@ -105,13 +143,27 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
 
         <div className="form-group">
           <label>Check-in Time *</label>
-          <input
-            type="time"
-            name="checkInTime"
-            value={formData.checkInTime}
-            onChange={handleChange}
-            required
-          />
+          <div className="form-row">
+            <select name="checkInHour" value={formData.checkInHour} onChange={handleChange} required>
+              <option value="">Hour</option>
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((hour) => (
+                <option key={hour} value={hour.toString().padStart(2, '0')}>
+                  {hour}
+                </option>
+              ))}
+            </select>
+            <select name="checkInMinute" value={formData.checkInMinute} onChange={handleChange}>
+              {['00', '15', '30', '45'].map((minute) => (
+                <option key={minute} value={minute}>
+                  {minute}
+                </option>
+              ))}
+            </select>
+            <select name="checkInPeriod" value={formData.checkInPeriod} onChange={handleChange}>
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+            </select>
+          </div>
         </div>
 
         <div className="form-group">
@@ -126,14 +178,28 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
         </div>
 
         <div className="form-group">
-          <label>Check-out Time *</label>
-          <input
-            type="time"
-            name="checkOutTime"
-            value={formData.checkOutTime}
-            onChange={handleChange}
-            required
-          />
+          <label>Check-out Time</label>
+          <div className="form-row">
+            <select name="checkOutHour" value={formData.checkOutHour} onChange={handleChange}>
+              <option value="">Hour</option>
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((hour) => (
+                <option key={hour} value={hour.toString().padStart(2, '0')}>
+                  {hour}
+                </option>
+              ))}
+            </select>
+            <select name="checkOutMinute" value={formData.checkOutMinute} onChange={handleChange}>
+              {['00', '15', '30', '45'].map((minute) => (
+                <option key={minute} value={minute}>
+                  {minute}
+                </option>
+              ))}
+            </select>
+            <select name="checkOutPeriod" value={formData.checkOutPeriod} onChange={handleChange}>
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+            </select>
+          </div>
         </div>
 
         <div className="form-row">
