@@ -380,8 +380,11 @@ async function submitInquiry(req, res) {
   const inquiries = readInquiries();
   inquiries.push(inquiry);
   writeInquiries(inquiries);
-
   const canSendMail = usingResend ? !!resendClient : !!transporter && smtpVerified;
+
+  // mark inquiry email status and persist quickly so we can return fast to the client
+  inquiry.emailStatus = canSendMail ? 'queued' : 'pending';
+  writeInquiries(inquiries);
 
   if (!canSendMail) {
     return res.json({
@@ -453,24 +456,26 @@ async function submitInquiry(req, res) {
     `,
   };
 
-  try {
-    let adminInfo = null;
-    let userInfo = null;
-    let emailSendFailed = false;
+  // respond immediately to avoid client-side timeouts and send emails in background
+  res.json({
+    success: true,
+    message: 'Inquiry saved. Email delivery queued.',
+    inquiryId: inquiry.id,
+    emailStatus: inquiry.emailStatus,
+  });
 
-    if (usingResend) {
-      // Try primary sender, fall back to contact email if domain not verified
-      const trySendEmail = async (emailData, recipientType) => {
+  (async function sendEmailsInBackground() {
+    try {
+      let adminInfo = null;
+      let userInfo = null;
+      let emailSendFailed = false;
+
+      const trySendWithResend = async (emailData, recipientType) => {
         let lastError = null;
-        
-        // Attempt 1: Use configured MAIL_FROM
+
         try {
           console.log(`📧 [RESEND] Attempting to send ${recipientType} email from ${MAIL_FROM}`);
-          const result = await resendClient.emails.send({
-            from: MAIL_FROM,
-            ...emailData,
-          });
-          
+          const result = await resendClient.emails.send({ from: MAIL_FROM, ...emailData });
           if (result?.error) {
             lastError = result.error.message || 'Unknown Resend error';
             console.error(`❌ [RESEND] ${recipientType} email failed with MAIL_FROM: ${lastError}`);
@@ -482,16 +487,11 @@ async function submitInquiry(req, res) {
           lastError = err instanceof Error ? err.message : String(err);
           console.error(`❌ [RESEND] ${recipientType} email error with MAIL_FROM: ${lastError}`);
         }
-        
-        // Attempt 2: Fall back to CONTACT_EMAIL if MAIL_FROM failed
+
         if (lastError && MAIL_FROM !== CONTACT_EMAIL) {
           try {
             console.log(`📧 [RESEND] Retrying ${recipientType} email from fallback: ${CONTACT_EMAIL}`);
-            const result = await resendClient.emails.send({
-              from: CONTACT_EMAIL,
-              ...emailData,
-            });
-            
+            const result = await resendClient.emails.send({ from: CONTACT_EMAIL, ...emailData });
             if (result?.error) {
               lastError = result.error.message || 'Unknown Resend error';
               console.error(`❌ [RESEND] ${recipientType} email failed with fallback: ${lastError}`);
@@ -504,69 +504,59 @@ async function submitInquiry(req, res) {
             console.error(`❌ [RESEND] ${recipientType} email error with fallback: ${lastError}`);
           }
         }
-        
+
         throw new Error(lastError || `Failed to send ${recipientType} email`);
       };
 
-      // Send admin email
-      try {
-        adminInfo = await trySendEmail({
-          to: ADMIN_EMAILS,
-          replyTo: email,
-          subject: adminMail.subject,
-          text: adminMail.text,
-          html: adminMail.html,
-        }, 'admin');
-      } catch (emailError) {
-        smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
-        emailSendFailed = true;
+      if (usingResend) {
+        try {
+          adminInfo = await trySendWithResend({ to: ADMIN_EMAILS, replyTo: email, subject: adminMail.subject, text: adminMail.text, html: adminMail.html }, 'admin');
+        } catch (emailError) {
+          smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
+          emailSendFailed = true;
+        }
+
+        try {
+          userInfo = await trySendWithResend({ to: [email], subject: userMail.subject, text: userMail.text, html: userMail.html }, 'user');
+        } catch (emailError) {
+          smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
+          emailSendFailed = true;
+        }
+      } else {
+        try {
+          adminInfo = await transporter.sendMail(adminMail);
+        } catch (emailError) {
+          console.error('Admin mail failed:', emailError);
+          emailSendFailed = true;
+        }
+
+        try {
+          userInfo = await transporter.sendMail(userMail);
+        } catch (emailError) {
+          console.error('User mail failed:', emailError);
+          emailSendFailed = true;
+        }
       }
 
-      // Send user email
-      try {
-        userInfo = await trySendEmail({
-          to: [email],
-          subject: userMail.subject,
-          text: userMail.text,
-          html: userMail.html,
-        }, 'user');
-      } catch (emailError) {
-        smtpLastError = emailError instanceof Error ? emailError.message : String(emailError);
-        emailSendFailed = true;
+      // update inquiry with result and persist
+      const updatedInquiries = readInquiries();
+      const idx = updatedInquiries.findIndex((i) => i.id === inquiry.id);
+      if (idx !== -1) {
+        updatedInquiries[idx].emailStatus = emailSendFailed ? 'delayed' : 'sent';
+        updatedInquiries[idx].adminMessageId = adminInfo?.messageId || adminInfo?.data?.id || null;
+        updatedInquiries[idx].userMessageId = userInfo?.messageId || userInfo?.data?.id || null;
+        writeInquiries(updatedInquiries);
       }
-    } else {
-      try {
-        adminInfo = await transporter.sendMail(adminMail);
-      } catch (emailError) {
-        console.error('Admin mail failed:', emailError);
-        emailSendFailed = true;
-      }
-
-      try {
-        userInfo = await transporter.sendMail(userMail);
-      } catch (emailError) {
-        console.error('User mail failed:', emailError);
-        emailSendFailed = true;
+    } catch (err) {
+      console.error('Background email sending failed:', err instanceof Error ? err.message : String(err));
+      const updatedInquiries = readInquiries();
+      const idx = updatedInquiries.findIndex((i) => i.id === inquiry.id);
+      if (idx !== -1) {
+        updatedInquiries[idx].emailStatus = 'pending';
+        writeInquiries(updatedInquiries);
       }
     }
-
-    return res.json({
-      success: true,
-      message: emailSendFailed ? 'Inquiry saved. Email delivery delayed.' : 'Inquiry saved and emails sent.',
-      inquiryId: inquiry.id,
-      adminMessageId: adminInfo?.messageId || adminInfo?.data?.id || null,
-      userMessageId: userInfo?.messageId || userInfo?.data?.id || null,
-      emailStatus: emailSendFailed ? 'delayed' : 'sent',
-    });
-  } catch (error) {
-    return res.json({
-      success: true,
-      message: 'Inquiry saved successfully. Email notifications will be sent shortly.',
-      inquiryId: inquiry.id,
-      emailStatus: 'pending',
-      note: error instanceof Error ? error.message : String(error),
-    });
-  }
+  })();
 }
 
 app.post('/api/send-mail', inquiryLimiter, submitInquiry);
