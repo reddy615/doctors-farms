@@ -95,10 +95,19 @@ export const apiFetch = async (
         const text = await response.text();
         console.error(`[API Error] ${response.status} ${response.statusText}:`, text);
         let backendError = '';
+        let backendDetails = '';
         if (text) {
           try {
             const parsed = JSON.parse(text);
             backendError = parsed?.error || parsed?.message || '';
+            if (parsed?.details) {
+              const detailsText = Array.isArray(parsed.details)
+                ? parsed.details.join('; ')
+                : typeof parsed.details === 'string'
+                  ? parsed.details
+                  : JSON.stringify(parsed.details);
+              backendDetails = detailsText ? ` Details: ${detailsText}` : '';
+            }
           } catch {
             backendError = text;
           }
@@ -106,7 +115,7 @@ export const apiFetch = async (
 
         throw new Error(
           backendError
-            ? `Server returned ${response.status}: ${backendError}`
+            ? `Server returned ${response.status}: ${backendError}${backendDetails}`
             : `Server returned ${response.status}: ${response.statusText}`
         );
       }

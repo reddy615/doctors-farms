@@ -241,24 +241,16 @@ function validateBookingData(data) {
     errors.push('Customer name is required');
   }
 
-  if (!data.email || !/^\S+@\S+\.\S+$/.test(data.email)) {
+  if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     errors.push('Valid email address is required');
   }
 
-  if (!phoneDigits || phoneDigits.length !== 10) {
-    errors.push('Valid 10-digit phone number is required');
+  if (!phoneDigits || !(phoneDigits.length === 10 || (phoneDigits.length === 12 && phoneDigits.startsWith('91')))) {
+    errors.push('Valid phone number is required');
   }
 
   if (!data.checkInDate) {
     errors.push('Check-in date is required');
-  }
-
-  if (!data.checkOutDate) {
-    errors.push('Check-out date is required');
-  }
-
-  if (!data.email || !/^[^\s@]+@gmail\.com$/i.test(data.email)) {
-    errors.push('A valid Gmail address is required');
   }
 
   if (data.adults < 1) {

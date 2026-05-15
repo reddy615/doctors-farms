@@ -588,9 +588,12 @@ export default function ChatBotWidget() {
       setShowBookingForm(false);
     } catch (error) {
       console.error('Booking error:', error);
+      const errorDetails = error instanceof Error ? error.message : 'Error submitting booking.';
       const errorMsg: Message = {
         id: generateId(),
-        text: error instanceof Error ? `Error submitting booking. ${error.message}` : 'Error submitting booking. Please try again.',
+        text: errorDetails.includes('Validation failed')
+          ? `Error submitting booking. ${errorDetails}`
+          : errorDetails || 'Error submitting booking. Please try again.',
         sender: 'bot',
         timestamp: new Date(),
       };
