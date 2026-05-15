@@ -28,16 +28,7 @@ const defaultMessages: Message[] = [
   },
 ];
 
-const faqQuestions = [
-  'Hi',
-  'I want to book a room',
-  'What time is check-in?',
-  'What time is check-out?',
-  'How much is the Heritage Cottage?',
-  'What facilities do you have?',
-  'What activities can we do?',
-  'How do I contact support?',
-];
+// Popular questions removed per user request
 
 function loadStoredMessages(): Message[] {
   if (typeof window === 'undefined') return defaultMessages;
@@ -142,18 +133,7 @@ export default function ChatBotWidget() {
     await sendMessageToAI(action, 'faq');
   };
 
-  const handleFaqQuestion = async (question: string) => {
-    const userMsg: Message = {
-      id: generateId(),
-      text: question,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-
-    await sendMessageToAI(question, 'faq');
-  };
+  // FAQ buttons removed — user requested they be hidden
 
   const sendMessageToAI = async (userMessage: string, type: string = 'general') => {
     setLoading(true);
@@ -297,23 +277,7 @@ export default function ChatBotWidget() {
 
               {/* Quick Actions or Input */}
               {!showBookingForm && showQuickActions && (
-                <>
-                  <QuickActions onAction={handleQuickAction} />
-                  <div className="quick-actions">
-                    <p className="quick-actions-label">Popular questions</p>
-                    <div className="quick-actions-grid">
-                      {faqQuestions.map((question) => (
-                        <button
-                          key={question}
-                          onClick={() => handleFaqQuestion(question)}
-                          className="quick-action-btn"
-                        >
-                          <span>{question}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
+                <QuickActions onAction={handleQuickAction} />
               )}
 
               {/* Input Area */}
