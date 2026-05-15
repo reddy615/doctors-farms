@@ -454,7 +454,7 @@ export default function ChatBotWidget() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, loading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -465,7 +465,7 @@ export default function ChatBotWidget() {
     }
 
     window.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
+  }, [messages, loading]);
 
   const generateId = () => `msg_${Date.now()}_${Math.random()}`;
 
