@@ -690,7 +690,12 @@ export default function ChatBotWidget() {
                   <input
                     type="text"
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={(e) => {
+                      setInput(e.target.value);
+                      if (e.target.value && showQuickActions) {
+                        setShowQuickActions(false);
+                      }
+                    }}
                     placeholder="Type your message..."
                     className="chatbot-input"
                     disabled={loading}
