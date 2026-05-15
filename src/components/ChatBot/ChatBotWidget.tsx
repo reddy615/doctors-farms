@@ -276,7 +276,11 @@ export default function ChatBotWidget() {
     setShowBookingForm(false);
     setBookingFlowStep('check-in-date');
     setBookingDraft({ roomType: 'Heritage Cottage' });
-    appendBotMessage('Thank you for choosing assisted booking 😊\nCould you please share your\n📅 Check-in date');
+    setLoading(true);
+    setTimeout(() => {
+      appendBotMessage('Thank you for choosing assisted booking 😊\nCould you please share your\n📅 Check-in date');
+      setLoading(false);
+    }, 3500);
   };
 
   const sendBookingToBackend = async (payload: BookingDraft) => {
