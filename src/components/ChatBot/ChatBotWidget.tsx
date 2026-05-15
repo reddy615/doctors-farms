@@ -306,7 +306,9 @@ export default function ChatBotWidget() {
       setShowBookingForm(true);
       setBookingFlowStep('idle');
       setBookingDraft({});
-      appendBotMessage('Perfect, the booking form is now open below. Please fill in your details and submit it.');
+      setTimeout(() => {
+        appendBotMessage('Perfect, the booking form is now open below. Please fill in your details and submit it.');
+      }, 3500);
       return;
     }
 
