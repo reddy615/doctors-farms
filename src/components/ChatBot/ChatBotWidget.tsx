@@ -72,6 +72,19 @@ export default function ChatBotWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasHydratedRef = useRef(false);
 
+  const openChatWindow = () => {
+    setChatState('open');
+    setShowQuickActions(true);
+    setShowBookingForm(false);
+  };
+
+  const closeChatWindow = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setChatState('closed');
+    setShowQuickActions(true);
+    setShowBookingForm(false);
+  };
+
   const startNewChat = () => {
     const freshMessages = createDefaultMessages();
     const separatorMessage: Message = {
@@ -222,7 +235,7 @@ export default function ChatBotWidget() {
     <div className="chatbot-widget">
       {/* Chat Button */}
       <button
-        onClick={() => setChatState('open')}
+        onClick={openChatWindow}
         className="chatbot-button"
         aria-label={chatState === 'closed' ? 'Open chat' : 'Chat launcher'}
         title={chatState === 'closed' ? 'Open chat' : 'Chat launcher'}
@@ -258,7 +271,7 @@ export default function ChatBotWidget() {
               >
                 {chatState === 'minimized' ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
               </button>
-              <button onClick={() => setChatState('closed')} className="control-btn">
+              <button onClick={closeChatWindow} className="control-btn">
                 <X size={18} />
               </button>
             </div>
