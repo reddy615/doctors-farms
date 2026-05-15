@@ -135,6 +135,17 @@ function isBookingIntentMessage(message) {
   return bookingIntentPattern.test(lowerMessage) || hasDateOrTimeDetails(lowerMessage);
 }
 
+function buildBookingChoices() {
+  return {
+    reply: 'We’re delighted to assist you with your reservation 😊\nPlease choose your preferred booking experience below\n👉 Book Manually\n👉 Let Me Assist You',
+    options: [
+      { label: 'Book Manually', value: 'book-manually' },
+      { label: 'Let Me Assist You', value: 'let-me-assist-you' },
+    ],
+    actionType: 'booking-choices',
+  };
+}
+
 /**
  * Call OpenAI API
  */
@@ -191,7 +202,7 @@ async function handleChatMessage(userMessage, conversationHistory = [], messageT
   }
 
   if (isBookingIntentMessage(userMessage)) {
-    return 'Welcome! 😊\nThank you for choosing us!\nI\'d be happy to help you book a room.\nCould you please tell me your check-in and check-out dates and how many guests will stay?';
+    return buildBookingChoices();
   }
 
   const faqResponse = findFAQResponse(userMessage);
@@ -234,12 +245,20 @@ function validateBookingData(data) {
     errors.push('Valid email address is required');
   }
 
-  if (!phoneDigits || !(phoneDigits.length === 10 || (phoneDigits.length === 12 && phoneDigits.startsWith('91')))) {
-    errors.push('Valid phone number is required');
+  if (!phoneDigits || phoneDigits.length !== 10) {
+    errors.push('Valid 10-digit phone number is required');
   }
 
   if (!data.checkInDate) {
     errors.push('Check-in date is required');
+  }
+
+  if (!data.checkOutDate) {
+    errors.push('Check-out date is required');
+  }
+
+  if (!data.email || !/^[^\s@]+@gmail\.com$/i.test(data.email)) {
+    errors.push('A valid Gmail address is required');
   }
 
   if (data.adults < 1) {

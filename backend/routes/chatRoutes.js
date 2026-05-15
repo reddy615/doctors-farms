@@ -102,6 +102,22 @@ Doctors Farms Team`,
   };
 }
 
+function normalizeChatReply(reply) {
+  if (typeof reply === 'string') {
+    return { reply };
+  }
+
+  if (reply && typeof reply === 'object') {
+    return {
+      reply: reply.reply || '',
+      options: Array.isArray(reply.options) ? reply.options : undefined,
+      actionType: reply.actionType || undefined,
+    };
+  }
+
+  return { reply: '' };
+}
+
 async function sendBookingEmail(bookingData, inquiryId) {
   const mail = formatBookingEmail(bookingData, inquiryId);
 
@@ -143,10 +159,11 @@ router.post('/chat', async (req, res) => {
     }
 
     const reply = await handleChatMessage(message, conversationHistory, messageType);
+    const normalizedReply = normalizeChatReply(reply);
 
     res.json({
       success: true,
-      reply,
+      ...normalizedReply,
       timestamp: new Date(),
     });
   } catch (error) {

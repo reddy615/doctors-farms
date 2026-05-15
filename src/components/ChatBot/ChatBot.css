@@ -220,6 +220,31 @@
   margin-bottom: 4px;
 }
 
+.message-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.message-option-btn {
+  border: 1px solid #1f7e4f;
+  background: #ffffff;
+  color: #1f7e4f;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.message-option-btn:hover {
+  background: #1f7e4f;
+  color: #ffffff;
+}
+
 .message-time {
   font-size: 11px;
   color: #999;
