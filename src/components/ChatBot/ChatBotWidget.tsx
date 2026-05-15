@@ -277,7 +277,7 @@ export default function ChatBotWidget() {
 
               {/* Quick Actions or Input */}
               {!showBookingForm && showQuickActions && (
-                <QuickActions onAction={handleQuickAction} />
+                <QuickActions onAction={handleQuickAction} onMinimize={() => setChatState('minimized')} />
               )}
 
               {/* Input Area */}

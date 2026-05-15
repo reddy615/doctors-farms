@@ -1,8 +1,9 @@
 
-import { Home, DollarSign, Utensils, Users, Phone } from 'lucide-react';
+import { Home, DollarSign, Utensils, Users, Phone, Minimize2 } from 'lucide-react';
 
 interface QuickActionsProps {
   onAction: (action: string) => void;
+  onMinimize?: () => void;
 }
 
 export default function QuickActions({ onAction }: QuickActionsProps) {
@@ -16,7 +17,14 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
 
   return (
     <div className="quick-actions">
-      <p className="quick-actions-label">What would you like to know?</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <p className="quick-actions-label">What would you like to know?</p>
+        {typeof onMinimize === 'function' ? (
+          <button className="control-btn" onClick={onMinimize} title="Minimize" aria-label="Minimize">
+            <Minimize2 size={16} />
+          </button>
+        ) : null}
+      </div>
       <div className="quick-actions-grid">
         {actions.map((action) => {
           const Icon = action.icon;
