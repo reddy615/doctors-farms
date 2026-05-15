@@ -8,7 +8,7 @@ dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 const FAQ_DATABASE = {
   'heritage-cottage': {
     keywords: ['heritage cottage', 'room price', 'room rates', 'how much is the room', 'price per night'],
-    response: 'Our Heritage Cottage is priced at ₹15,000 for 24 hours. It includes a cozy stay with organic breakfast and access to our resort facilities.',
+    response: 'Our Heritage Cottage is priced at ₹15,000 for 24 Hours. This includes organic breakfast and access to all resort facilities. Prices may vary during peak seasons.',
   },
   'check-in': {
     keywords: ['check in', 'check-in', 'arrival time', 'when can i', 'what time'],
