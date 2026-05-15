@@ -285,7 +285,16 @@ export default function ChatBotWidget() {
 
               {/* Quick Actions or Input */}
               {!showBookingForm && showQuickActions && (
-                <QuickActions onAction={handleQuickAction} onMinimize={() => setChatState('minimized')} />
+                <QuickActions onAction={handleQuickAction} onMinimize={() => setShowQuickActions(false)} />
+              )}
+
+              {!showBookingForm && !showQuickActions && (
+                <div className="quick-actions-collapsed">
+                  <span className="quick-actions-label">What would you like to know?</span>
+                  <button className="quick-actions-expand-btn" onClick={() => setShowQuickActions(true)} aria-label="Show options">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1f7e4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18"></path><path d="M12 3v18"></path></svg>
+                  </button>
+                </div>
               )}
 
               {/* Input Area */}
