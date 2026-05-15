@@ -27,7 +27,8 @@ type BookingFlowStep =
   | 'check-out-date'
   | 'guests'
   | 'room-type'
-  | 'contact'
+  | 'customer-name'
+  | 'phone-number'
   | 'email'
   | 'confirmation';
 
@@ -327,8 +328,8 @@ export default function ChatBotWidget() {
         roomType: 'Heritage Cottage',
         totalPrice: calculateEstimatedPrice(prev.checkInDate, prev.checkOutDate),
       }));
-      setBookingFlowStep('contact');
-      appendBotMessage('Excellent choice 😊\nMay I have your full name and Phone Number for the reservation?');
+      setBookingFlowStep('customer-name');
+      appendBotMessage('Excellent choice 😊\nCould you please share your full name?');
       return;
     }
 
@@ -417,14 +418,27 @@ export default function ChatBotWidget() {
       return;
     }
 
-    if (step === 'contact') {
-      const parsedContact = parseNameAndPhone(userText);
-      if (!parsedContact) {
-        appendBotMessage('Please share your full name and a valid 10-digit phone number.');
+    if (step === 'customer-name') {
+      const name = userText.trim();
+      if (name.length < 2) {
+        appendBotMessage('Please provide your full name (at least 2 characters).');
         return;
       }
 
-      setBookingDraft((prev) => ({ ...prev, ...parsedContact }));
+      setBookingDraft((prev) => ({ ...prev, customerName: name }));
+      setBookingFlowStep('phone-number');
+      appendBotMessage('Thank you! 😊\nCould you please share your 10-digit phone number?');
+      return;
+    }
+
+    if (step === 'phone-number') {
+      const phoneMatch = userText.replace(/\D/g, '');
+      if (phoneMatch.length !== 10 && phoneMatch.length !== 12) {
+        appendBotMessage('Please provide a valid 10-digit phone number.');
+        return;
+      }
+
+      setBookingDraft((prev) => ({ ...prev, phoneNumber: phoneMatch }));
       setBookingFlowStep('email');
       appendBotMessage('Perfect 👍\nCould you also provide your email address for booking confirmation?');
       return;
