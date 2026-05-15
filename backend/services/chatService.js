@@ -135,6 +135,11 @@ function isBookingIntentMessage(message) {
   return bookingIntentPattern.test(lowerMessage) || hasDateOrTimeDetails(lowerMessage);
 }
 
+function isExactBookRoomRequest(message) {
+  const normalized = message.toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  return normalized === 'i want to book room';
+}
+
 function buildBookingChoices() {
   return {
     reply: 'We’re delighted to assist you with your reservation 😊\nPlease choose your preferred booking experience below\n👉 Book Manually\n👉 Let Me Assist You',
@@ -199,6 +204,10 @@ async function handleChatMessage(userMessage, conversationHistory = [], messageT
 
   if (isGreetingMessage(userMessage)) {
     return 'Hello 😊\nHope you\'re having a wonderful day!\nHow may I assist you?';
+  }
+
+  if (isExactBookRoomRequest(userMessage)) {
+    return 'Thank you for choosing us!\nI\'d be happy to help you book a room.';
   }
 
   if (isBookingIntentMessage(userMessage)) {
