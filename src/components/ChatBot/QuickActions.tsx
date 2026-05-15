@@ -17,10 +17,15 @@ export default function QuickActions({ onAction, onMinimize }: QuickActionsProps
 
   return (
     <div className="quick-actions">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+      <div style={{ position: 'relative', marginBottom: 8 }}>
         <p className="quick-actions-label">What would you like to know?</p>
         {typeof onMinimize === 'function' ? (
-          <button className="control-btn" onClick={onMinimize} title="Minimize" aria-label="Minimize">
+          <button
+            className="quick-actions-minimize-btn"
+            onClick={onMinimize}
+            title="Minimize"
+            aria-label="Minimize"
+          >
             <Minimize2 size={16} />
           </button>
         ) : null}
