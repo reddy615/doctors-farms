@@ -216,28 +216,7 @@ export default function ChatBotWidget() {
 
     return { adults, children };
   };
-
-  const parseNameAndPhone = (text: string) => {
-    const digits = text.replace(/\D/g, '');
-    if (digits.length !== 10) {
-      return null;
-    }
-
-    const cleanedName = text
-      .replace(/\d+/g, ' ')
-      .replace(/\b(phone|number|mobile|call|contact)\b/gi, ' ')
-      .replace(/[,:;-]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    const customerName = cleanedName.length >= 2 ? cleanedName : bookingDraft.customerName || '';
-
-    if (!customerName) {
-      return null;
-    }
-
-    return { customerName, phoneNumber: digits };
-  };
+
 
   const calculateEstimatedPrice = (checkInDate?: string, checkOutDate?: string) => {
     if (!checkInDate || !checkOutDate) {
@@ -413,8 +392,8 @@ export default function ChatBotWidget() {
         roomType: 'Heritage Cottage',
         totalPrice: calculateEstimatedPrice(prev.checkInDate, prev.checkOutDate),
       }));
-      setBookingFlowStep('contact');
-      appendBotMessage('Excellent choice 😊\nMay I have your full name and Phone Number for the reservation?');
+      setBookingFlowStep('customer-name');
+      appendBotMessage('Excellent choice 😊\nCould you please share your full name?');
       return;
     }
 
