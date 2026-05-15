@@ -54,12 +54,15 @@
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease-out;
+  transition: height 220ms ease, width 220ms ease, transform 220ms ease, opacity 180ms ease;
   overflow: hidden;
 }
 
 .chatbot-window.minimized {
   height: 56px;
   width: 300px;
+  cursor: pointer;
+  opacity: 0.98;
 }
 
 @keyframes slideUp {
@@ -82,6 +85,10 @@
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+}
+
+.chatbot-window.minimized .chatbot-header {
+  padding: 10px 12px;
 }
 
 .chatbot-title h3 {

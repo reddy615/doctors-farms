@@ -232,7 +232,15 @@ export default function ChatBotWidget() {
 
       {/* Chat Window */}
       {chatState !== 'closed' && (
-        <div className={`chatbot-window ${chatState === 'minimized' ? 'minimized' : ''}`}>
+        <div
+          className={`chatbot-window ${chatState === 'minimized' ? 'minimized' : ''}`}
+          onClick={() => {
+            // click-to-expand when minimized
+            if (chatState === 'minimized') {
+              setChatState('open');
+            }
+          }}
+        >
           {/* Header */}
           <div className="chatbot-header">
             <div className="chatbot-title">
@@ -245,7 +253,7 @@ export default function ChatBotWidget() {
                 <span>New Chat</span>
               </button>
               <button
-                onClick={() => setChatState(chatState === 'minimized' ? 'open' : 'minimized')}
+                  onClick={(e) => { e.stopPropagation(); setChatState(chatState === 'minimized' ? 'open' : 'minimized'); }}
                 className="control-btn"
               >
                 {chatState === 'minimized' ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
