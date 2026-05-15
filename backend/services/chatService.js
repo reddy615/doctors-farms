@@ -6,6 +6,10 @@ dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
 // FAQ Fallback System for when OpenAI is unavailable
 const FAQ_DATABASE = {
+  'heritage-cottage': {
+    keywords: ['heritage cottage', 'room price', 'room rates', 'how much is the room', 'price per night'],
+    response: 'Our Heritage Cottage is priced at ₹15,000 for 24 hours. It includes a cozy stay with organic breakfast and access to our resort facilities.',
+  },
   'check-in': {
     keywords: ['check in', 'check-in', 'arrival time', 'when can i', 'what time'],
     response: 'Check-in is available from 2:00 PM onwards. Early check-in may be available upon request (subject to availability). Please contact us for early check-in arrangements.',
@@ -14,13 +18,17 @@ const FAQ_DATABASE = {
     keywords: ['check out', 'checkout', 'departure', 'when do i'],
     response: 'Check-out is at 11:00 AM. Late check-out may be available for an additional fee. Please contact our front desk for details.',
   },
-  'room-price': {
-    keywords: ['price', 'cost', 'how much', 'rate', 'charges'],
-    response: 'Our Heritage Cottage is priced at ₹15,000 for 24 Hours. This includes organic breakfast and access to all resort facilities. Prices may vary during peak seasons.',
+  'booking': {
+    keywords: ['book', 'booking', 'reserve', 'reservation', 'how do i book'],
+    response: 'You can book by using the chatbot booking form or by contacting our team directly. If you already know your stay dates, send them in chat and we can guide you from there.',
   },
   'pool': {
     keywords: ['pool', 'swimming', 'water', 'swim'],
     response: 'Yes, we have a beautiful swimming pool available for all guests. Pool hours are 7 AM - 7 PM. Swimming pool access is included with your room booking.',
+  },
+  'dining': {
+    keywords: ['dining', 'food', 'meals', 'breakfast', 'lunch', 'dinner', 'restaurant'],
+    response: 'We offer farm-to-table dining with fresh, locally sourced meals. Breakfast is included with the Heritage Cottage, and our team can help with dietary preferences too.',
   },
   'facilities': {
     keywords: ['facilities', 'amenities', 'what do you have', 'what\'s included'],
@@ -33,6 +41,10 @@ const FAQ_DATABASE = {
   'contact': {
     keywords: ['contact', 'support', 'help', 'call', 'phone', 'email', 'reach'],
     response: 'Contact us:\n📞 +91-9955575969\n📧 doctorsfarms686@gmail.com\nOr use the booking form to schedule a callback from our team.',
+  },
+  'wifi': {
+    keywords: ['wifi', 'wi-fi', 'internet', 'network'],
+    response: 'Yes, WiFi is available for guests during their stay.',
   },
   'family': {
     keywords: ['family', 'children', 'kids', 'family group', 'how many'],
@@ -57,6 +69,50 @@ function findFAQResponse(message) {
   }
 
   return null;
+}
+
+function isGreetingMessage(message) {
+  const normalized = message
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const greetingWords = new Set([
+    'hi',
+    'hello',
+    'hey',
+    'hii',
+    'hiii',
+    'hola',
+    'good morning',
+    'good afternoon',
+    'good evening',
+  ]);
+
+  return greetingWords.has(normalized);
+}
+
+function hasDateOrTimeDetails(message) {
+  const lowerMessage = message.toLowerCase();
+
+  const datePattern = /(\b\d{1,2}[\/-]\d{1,2}([\/-]\d{2,4})?\b)|(\b\d{4}-\d{2}-\d{2}\b)/;
+  const timePattern = /(\b\d{1,2}(:\d{2})?\s?(am|pm)\b)|(\b\d{1,2}:\d{2}\b)/;
+  const weekdayPattern = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today|next week|weekend)\b/;
+  const monthPattern = /\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\b/;
+
+  return datePattern.test(lowerMessage)
+    || timePattern.test(lowerMessage)
+    || weekdayPattern.test(lowerMessage)
+    || monthPattern.test(lowerMessage);
+}
+
+function isBookingIntentMessage(message) {
+  const lowerMessage = message.toLowerCase();
+
+  const bookingIntentPattern = /\b(book|booking|reserve|reservation|room|stay|check in|check-in|check out|check-out)\b/;
+
+  return bookingIntentPattern.test(lowerMessage) || hasDateOrTimeDetails(lowerMessage);
 }
 
 /**
@@ -106,6 +162,20 @@ Always be helpful, professional, and encourage bookings. If unsure, suggest cont
  * Main chat handler
  */
 async function handleChatMessage(userMessage, conversationHistory = [], messageType = 'general') {
+  if (isGreetingMessage(userMessage)) {
+    return 'Hello 😊\nHope you\'re having a wonderful day!\nHow may I assist you?';
+  }
+
+  if (isBookingIntentMessage(userMessage)) {
+    return 'Welcome! 😊\nThank you for choosing us!\nI\'d be happy to help you book a room.\nCould you please tell me your check-in and check-out dates and how many guests will stay?';
+  }
+
+  const faqResponse = findFAQResponse(userMessage);
+
+  if (faqResponse) {
+    return faqResponse;
+  }
+
   // Build message array for OpenAI
   const messages = conversationHistory.map((msg) => ({
     role: msg.role,
@@ -115,12 +185,6 @@ async function handleChatMessage(userMessage, conversationHistory = [], messageT
 
   // Try OpenAI first
   let aiResponse = await callOpenAI(messages);
-
-  // If OpenAI fails, use FAQ fallback
-  if (!aiResponse) {
-    console.log('Using FAQ fallback system');
-    aiResponse = findFAQResponse(userMessage);
-  }
 
   // If still no response, provide default
   if (!aiResponse) {
@@ -220,4 +284,6 @@ module.exports = {
   validateBookingData,
   saveBookingInquiry,
   findFAQResponse,
+  isGreetingMessage,
+  isBookingIntentMessage,
 };
