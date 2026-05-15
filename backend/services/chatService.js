@@ -110,7 +110,8 @@ function hasDateOrTimeDetails(message) {
 function isBookingIntentMessage(message) {
   const lowerMessage = message.toLowerCase();
 
-  const bookingIntentPattern = /\b(book|booking|reserve|reservation|room|stay|check in|check-in|check out|check-out)\b/;
+  // Only treat explicit booking verbs or check-in/check-out phrases as booking intent.
+  const bookingIntentPattern = /\b(book|booking|reserve|reservation|check in|check-in|check out|check-out|want to book|i want to book)\b/;
 
   return bookingIntentPattern.test(lowerMessage) || hasDateOrTimeDetails(lowerMessage);
 }
