@@ -93,6 +93,25 @@ function isGreetingMessage(message) {
   return greetingWords.has(normalized);
 }
 
+function isHowAreYouMessage(message) {
+  const normalized = message
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const variants = new Set([
+    'how are you',
+    'how are you doing',
+    'how are you today',
+    'how r u',
+    'how ru',
+    'how you doing',
+  ]);
+
+  return variants.has(normalized);
+}
+
 function hasDateOrTimeDetails(message) {
   const lowerMessage = message.toLowerCase();
 
@@ -163,6 +182,10 @@ Always be helpful, professional, and encourage bookings. If unsure, suggest cont
  * Main chat handler
  */
 async function handleChatMessage(userMessage, conversationHistory = [], messageType = 'general') {
+  if (isHowAreYouMessage(userMessage)) {
+    return 'I\'m doing wonderful, thank you for asking 😊\nIt\'s a pleasure assisting you today.';
+  }
+
   if (isGreetingMessage(userMessage)) {
     return 'Hello 😊\nHope you\'re having a wonderful day!\nHow may I assist you?';
   }
@@ -285,6 +308,7 @@ module.exports = {
   validateBookingData,
   saveBookingInquiry,
   findFAQResponse,
+  isHowAreYouMessage,
   isGreetingMessage,
   isBookingIntentMessage,
 };
