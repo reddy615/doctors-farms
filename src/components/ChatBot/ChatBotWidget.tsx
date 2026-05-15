@@ -315,6 +315,17 @@ export default function ChatBotWidget() {
       return;
     }
 
+    if (normalizedValue === 'heritage-cottage') {
+      setBookingDraft((prev) => ({
+        ...prev,
+        roomType: 'Heritage Cottage',
+        totalPrice: calculateEstimatedPrice(prev.checkInDate, prev.checkOutDate),
+      }));
+      setBookingFlowStep('contact');
+      appendBotMessage('Excellent choice 😊\nMay I have your full name and Phone Number for the reservation?');
+      return;
+    }
+
     if (normalizedValue === 'yes') {
       const payload = {
         ...bookingDraft,
