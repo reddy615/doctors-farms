@@ -280,7 +280,7 @@ export default function ChatBotWidget() {
     setTimeout(() => {
       appendBotMessage('Thank you for choosing assisted booking 😊\nCould you please share your\n📅 Check-in date');
       setLoading(false);
-    }, 2000);
+    }, 1500);
   };
 
   const sendBookingToBackend = async (payload: BookingDraft) => {
@@ -312,7 +312,7 @@ export default function ChatBotWidget() {
       setBookingDraft({});
       setTimeout(() => {
         appendBotMessage('Perfect, the booking form is now open below. Please fill in your details and submit it.');
-      }, 2000);
+      }, 1500);
       return;
     }
 
