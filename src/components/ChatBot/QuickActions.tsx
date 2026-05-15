@@ -6,7 +6,7 @@ interface QuickActionsProps {
   onMinimize?: () => void;
 }
 
-export default function QuickActions({ onAction }: QuickActionsProps) {
+export default function QuickActions({ onAction, onMinimize }: QuickActionsProps) {
   const actions = [
     { label: 'Book Room', icon: Home },
     { label: 'Room Prices', icon: DollarSign },
