@@ -207,7 +207,7 @@ async function handleChatMessage(userMessage, conversationHistory = [], messageT
   }
 
   if (isExactBookRoomRequest(userMessage)) {
-    return 'Thank you for choosing us!\nI\'d be happy to help you book a room.';
+    return 'Welcome! 😊\nThank you for choosing us!\nI\'d be happy to help you book a room.';
   }
 
   if (isBookingIntentMessage(userMessage)) {
