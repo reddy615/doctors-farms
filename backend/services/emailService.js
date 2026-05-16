@@ -1,6 +1,17 @@
 const DEFAULT_SUPPORT_EMAIL = process.env.CONTACT_EMAIL || 'doctorsfarms686@gmail.com';
 const DEFAULT_SUPPORT_PHONE = process.env.SUPPORT_PHONE || '+91 99555 75969';
 
+// Email validation pattern
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateEmail(email) {
+  if (!email || typeof email !== 'string') {
+    return false;
+  }
+  const trimmed = email.trim();
+  return EMAIL_REGEX.test(trimmed) && trimmed.length <= 254;
+}
+
 function escapeHtml(value) {
   if (value == null) return '';
 
@@ -158,6 +169,11 @@ async function sendWithRetry(sendFn, attempts = 3, timeoutMs = 20000, delays = [
 async function sendMailWithProvider(mailConfig, mail) {
   const { usingResend, resendClient, transporter, mailFrom, contactEmail } = mailConfig;
 
+  // Validate recipient email
+  if (!validateEmail(mail.to)) {
+    throw new Error(`Invalid recipient email address: "${mail.to}"`);
+  }
+
   if (usingResend) {
     if (!resendClient) {
       throw new Error('Resend client is not configured');
@@ -175,6 +191,11 @@ async function sendMailWithProvider(mailConfig, mail) {
       html: mail.html,
     });
     console.log(`[Resend] Response:`, result);
+    
+    // Check for Resend errors
+    if (result.error) {
+      throw new Error(`Resend API error: ${result.error.message || JSON.stringify(result.error)}`);
+    }
     return result;
   }
 
