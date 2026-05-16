@@ -154,6 +154,84 @@ export default function ChatBotWidget() {
     setBookingDraft({});
   };
 
+  const validateCheckInOutDate = (text: string): { isValid: boolean; formattedDate?: string; errorMessage?: string } => {
+    const trimmedText = text.trim();
+    
+    // Month mapping - full names and shortcuts
+    const monthMap: Record<string, { fullName: string; num: number }> = {
+      january: { fullName: 'January', num: 1 },
+      jan: { fullName: 'January', num: 1 },
+      february: { fullName: 'February', num: 2 },
+      feb: { fullName: 'February', num: 2 },
+      march: { fullName: 'March', num: 3 },
+      mar: { fullName: 'March', num: 3 },
+      april: { fullName: 'April', num: 4 },
+      apr: { fullName: 'April', num: 4 },
+      may: { fullName: 'May', num: 5 },
+      june: { fullName: 'June', num: 6 },
+      jun: { fullName: 'June', num: 6 },
+      july: { fullName: 'July', num: 7 },
+      jul: { fullName: 'July', num: 7 },
+      august: { fullName: 'August', num: 8 },
+      aug: { fullName: 'August', num: 8 },
+      september: { fullName: 'September', num: 9 },
+      sep: { fullName: 'September', num: 9 },
+      october: { fullName: 'October', num: 10 },
+      oct: { fullName: 'October', num: 10 },
+      november: { fullName: 'November', num: 11 },
+      nov: { fullName: 'November', num: 11 },
+      december: { fullName: 'December', num: 12 },
+      dec: { fullName: 'December', num: 12 },
+    };
+
+    // Extract date numbers from input
+    const numbers = trimmedText.match(/\d+/g)?.map(Number) || [];
+    
+    // Extract month name from input
+    let monthInfo: { fullName: string; num: number } | null = null;
+    const lowerText = trimmedText.toLowerCase();
+    
+    for (const [key, value] of Object.entries(monthMap)) {
+      if (lowerText.includes(key)) {
+        monthInfo = value;
+        break;
+      }
+    }
+
+    // Validate that we have both date and month
+    if (!monthInfo) {
+      return {
+        isValid: false,
+        errorMessage: 'Please give the correct month. Months should be: January, February, March, April, May, June, July, August, September, October, November, or December (or their shortcuts like Jan, Feb, etc.)',
+      };
+    }
+
+    if (numbers.length === 0) {
+      return {
+        isValid: false,
+        errorMessage: 'Please give the correct date. Please provide a date between 1 and 31.',
+      };
+    }
+
+    const date = numbers[0];
+
+    // Validate date range
+    if (date < 1 || date > 31) {
+      return {
+        isValid: false,
+        errorMessage: 'Please give the correct date. Date should be between 1 and 31.',
+      };
+    }
+
+    // Format the date as "DD Month" (e.g., "11 June")
+    const formattedDate = `${date} ${monthInfo.fullName}`;
+
+    return {
+      isValid: true,
+      formattedDate,
+    };
+  };
+
   const parseGuestCounts = (text: string) => {
     const lowerText = text.toLowerCase();
     const numberWords: Record<string, number> = {
@@ -216,7 +294,8 @@ export default function ChatBotWidget() {
 
     return { adults, children };
   };
-
+
+
 
   const calculateEstimatedPrice = (checkInDate?: string, checkOutDate?: string) => {
     if (!checkInDate || !checkOutDate) {
@@ -351,14 +430,24 @@ export default function ChatBotWidget() {
     const step = bookingFlowStep;
 
     if (step === 'check-in-date') {
-      setBookingDraft((prev) => ({ ...prev, checkInDate: userText }));
+      const dateValidation = validateCheckInOutDate(userText);
+      if (!dateValidation.isValid) {
+        appendBotMessage(`${dateValidation.errorMessage}\n\nFor example: 11 June or June 11`);
+        return;
+      }
+      setBookingDraft((prev) => ({ ...prev, checkInDate: dateValidation.formattedDate }));
       setBookingFlowStep('check-out-date');
       appendBotMessage('Thank you 😊\nMay I know your\n📅 Check-out date');
       return;
     }
 
     if (step === 'check-out-date') {
-      setBookingDraft((prev) => ({ ...prev, checkOutDate: userText }));
+      const dateValidation = validateCheckInOutDate(userText);
+      if (!dateValidation.isValid) {
+        appendBotMessage(`${dateValidation.errorMessage}\n\nFor example: 15 June or June 15`);
+        return;
+      }
+      setBookingDraft((prev) => ({ ...prev, checkOutDate: dateValidation.formattedDate }));
       setBookingFlowStep('guests');
       appendBotMessage('Perfect 👌\n👥 Number of guests');
       return;
