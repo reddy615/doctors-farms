@@ -4,6 +4,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 const { handleChatMessage, validateBookingData, saveBookingInquiry } = require('../services/chatService');
+const { sendAdminNotification, sendUserConfirmation } = require('../services/emailService');
 
 dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
@@ -226,67 +227,65 @@ router.post('/booking-inquiry', async (req, res) => {
       console.error('Failed to mark inquiry queued:', err);
     }
 
-    // Respond immediately to avoid client-side timeout; send emails in background
+    const mailConfig = {
+      usingResend,
+      resendClient,
+      transporter,
+      mailFrom: MAIL_FROM,
+      contactEmail: CONTACT_EMAIL,
+    };
+
+    const adminMail = formatBookingEmail(bookingData, inquiryId);
+
+    const [adminResult, userResult] = await Promise.allSettled([
+      sendAdminNotification({ mail: {
+        from: `"Doctors Farms Website" <${MAIL_FROM}>`,
+        to: CONTACT_EMAIL,
+        replyTo: bookingData.email,
+        subject: adminMail.subject,
+        text: adminMail.text,
+        html: adminMail.html,
+      }, mailConfig }),
+      sendUserConfirmation({ bookingData, inquiryId, mailConfig, overrides: { supportEmail: CONTACT_EMAIL } }),
+    ]);
+
+    const adminInfo = adminResult.status === 'fulfilled' ? adminResult.value : null;
+    const userInfo = userResult.status === 'fulfilled' ? userResult.value : null;
+    const adminFailed = adminResult.status === 'rejected';
+    const userFailed = userResult.status === 'rejected';
+
+    const emailStatus = adminFailed && userFailed ? 'pending' : (adminFailed || userFailed ? 'partial' : 'sent');
+
+    try {
+      const fs = require('fs');
+      const filePath = path.join(__dirname, '../inquiries.json');
+      if (fs.existsSync(filePath)) {
+        const data = fs.readFileSync(filePath, 'utf-8');
+        const inquiries = JSON.parse(data || '[]');
+        const idx = inquiries.findIndex((i) => i.id === inquiryId);
+        if (idx !== -1) {
+          inquiries[idx].emailStatus = emailStatus;
+          inquiries[idx].adminMessageId = adminInfo?.messageId || adminInfo?.data?.id || null;
+          inquiries[idx].userMessageId = userInfo?.messageId || userInfo?.data?.id || null;
+          fs.writeFileSync(filePath, JSON.stringify(inquiries, null, 2));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to update inquiry status after email send:', err);
+    }
+
     res.json({
       success: true,
       inquiryId,
-      message: 'Booking inquiry submitted successfully (email queued)',
+      message: emailStatus === 'sent'
+        ? 'Booking inquiry submitted successfully. Confirmation emails sent.'
+        : 'Booking inquiry submitted successfully. Email delivery was partially successful.',
+      emailStatus,
+      emailResults: {
+        admin: adminFailed ? 'failed' : 'sent',
+        user: userFailed ? 'failed' : 'sent',
+      },
     });
-
-    // Background email send with retries and timeout
-    (async function sendBookingEmailBackground() {
-      // helper: retry wrapper with per-attempt timeout
-      const sendWithRetry = async (fn, attempts = 3, timeoutMs = 20000, delays = [2000, 5000]) => {
-        for (let attempt = 1; attempt <= attempts; attempt++) {
-          try {
-            const result = await Promise.race([
-              fn(),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('send_timeout')), timeoutMs)),
-            ]);
-            return result;
-          } catch (err) {
-            const isLast = attempt === attempts;
-            console.error(`Booking email attempt ${attempt} failed:`, err instanceof Error ? err.message : String(err));
-            if (isLast) throw err;
-            const delay = delays[Math.min(attempt - 1, delays.length - 1)];
-            await new Promise((r) => setTimeout(r, delay));
-          }
-        }
-      };
-
-      let emailSendFailed = false;
-      try {
-        if (usingResend && resendClient) {
-          await sendWithRetry(() => resendClient.emails.send({ from: MAIL_FROM, to: CONTACT_EMAIL, replyTo: bookingData.email, subject: formatBookingEmail(bookingData, inquiryId).subject, text: formatBookingEmail(bookingData, inquiryId).text, html: formatBookingEmail(bookingData, inquiryId).html }));
-          await sendWithRetry(() => resendClient.emails.send({ from: MAIL_FROM, to: bookingData.email, subject: formatGuestConfirmationEmail(bookingData, inquiryId).subject, text: formatGuestConfirmationEmail(bookingData, inquiryId).text, html: formatGuestConfirmationEmail(bookingData, inquiryId).html }));
-        } else if (transporter) {
-          await sendWithRetry(() => transporter.sendMail({ from: `"Doctors Farms Website" <${MAIL_FROM}>`, to: CONTACT_EMAIL, replyTo: bookingData.email, subject: formatBookingEmail(bookingData, inquiryId).subject, text: formatBookingEmail(bookingData, inquiryId).text, html: formatBookingEmail(bookingData, inquiryId).html }));
-          await sendWithRetry(() => transporter.sendMail({ from: `"Doctors Farms Website" <${MAIL_FROM}>`, to: bookingData.email, subject: formatGuestConfirmationEmail(bookingData, inquiryId).subject, text: formatGuestConfirmationEmail(bookingData, inquiryId).text, html: formatGuestConfirmationEmail(bookingData, inquiryId).html }));
-        } else {
-          throw new Error('Mail transporter not configured');
-        }
-      } catch (err) {
-        emailSendFailed = true;
-        console.error('Booking background email error:', err);
-      }
-
-      // update inquiry status
-      try {
-        const fs = require('fs');
-        const filePath = path.join(__dirname, '../inquiries.json');
-        if (fs.existsSync(filePath)) {
-          const data = fs.readFileSync(filePath, 'utf-8');
-          const inquiries = JSON.parse(data || '[]');
-          const idx = inquiries.findIndex((i) => i.id === inquiryId);
-          if (idx !== -1) {
-            inquiries[idx].emailStatus = emailSendFailed ? 'delayed' : 'sent';
-            fs.writeFileSync(filePath, JSON.stringify(inquiries, null, 2));
-          }
-        }
-      } catch (err) {
-        console.error('Failed to update inquiry status after email send:', err);
-      }
-    })();
   } catch (error) {
     console.error('Booking inquiry error:', error);
     res.status(500).json({
