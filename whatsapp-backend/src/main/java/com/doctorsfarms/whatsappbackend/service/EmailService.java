@@ -47,6 +47,8 @@ public class EmailService {
         Exception lastError = null;
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
+                System.out.println("📧 [EmailService] Attempt " + attempt + "/" + MAX_RETRIES + " to send email to: " + to);
+                
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -55,16 +57,41 @@ public class EmailService {
                 helper.setSubject(subject);
                 helper.setText(htmlBody, true);
 
+                System.out.println("📧 [EmailService] Message prepared. Calling mailSender.send()...");
                 mailSender.send(message);
+                System.out.println("📧 [EmailService] mailSender.send() completed without exception");
 
-                System.out.println("✅ [EmailService] Sent email to " + to + " (attempt " + attempt + ")");
+                System.out.println("✅ [EmailService] SUCCESSFULLY SENT EMAIL TO: " + to + " (attempt " + attempt + ")");
                 return true;
-            } catch (MailSendException | MessagingException e) {
+            } catch (MailSendException e) {
                 lastError = e;
-                System.err.println("⚠️ [EmailService] Attempt " + attempt + " failed to send email to " + to + ": " + e.getMessage());
+                System.err.println("❌ [EmailService] MailSendException on attempt " + attempt + " for " + to);
+                System.err.println("   Error message: " + e.getMessage());
+                System.err.println("   Failed message: " + e.getFailedMessage());
+                e.printStackTrace();
+                
                 if (attempt < MAX_RETRIES) {
+                    long delay = RETRY_DELAY_MS * attempt;
+                    System.out.println("   Retrying in " + delay + "ms...");
                     try {
-                        Thread.sleep(RETRY_DELAY_MS * attempt);
+                        Thread.sleep(delay);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            } catch (MessagingException e) {
+                lastError = e;
+                System.err.println("❌ [EmailService] MessagingException on attempt " + attempt + " for " + to);
+                System.err.println("   Error message: " + e.getMessage());
+                System.err.println("   Exception type: " + e.getClass().getName());
+                e.printStackTrace();
+                
+                if (attempt < MAX_RETRIES) {
+                    long delay = RETRY_DELAY_MS * attempt;
+                    System.out.println("   Retrying in " + delay + "ms...");
+                    try {
+                        Thread.sleep(delay);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         break;
@@ -72,15 +99,21 @@ public class EmailService {
                 }
             } catch (Exception e) {
                 lastError = e;
-                System.err.println("❌ [EmailService] Unexpected error sending email to " + to + ": " + e.getMessage());
+                System.err.println("❌ [EmailService] Unexpected exception on attempt " + attempt + " for " + to);
+                System.err.println("   Error message: " + e.getMessage());
+                System.err.println("   Exception type: " + e.getClass().getName());
+                e.printStackTrace();
                 break;
             }
         }
 
-        if (lastError instanceof RuntimeException) {
-            throw (RuntimeException) lastError;
+        if (lastError != null) {
+            System.err.println("❌ [EmailService] ALL ATTEMPTS FAILED FOR: " + to);
+            System.err.println("   Root cause: " + (lastError.getCause() != null ? lastError.getCause().getMessage() : lastError.getMessage()));
+            if (lastError instanceof RuntimeException) {
+                throw (RuntimeException) lastError;
+            }
         }
-        System.err.println("❌ [EmailService] All attempts failed for " + to);
         return false;
     }
 
