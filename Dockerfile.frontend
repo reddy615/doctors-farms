@@ -3,10 +3,19 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+# Update npm to latest version
+RUN npm install -g npm@latest
 
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies with legacy peer deps flag
+RUN npm install --legacy-peer-deps --verbose
+
+# Copy all source files
 COPY . .
+
+# Build the application
 RUN npm run build
 
 EXPOSE 80
