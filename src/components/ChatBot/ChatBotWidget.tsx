@@ -204,7 +204,7 @@ export default function ChatBotWidget() {
       if (date < 1 || date > 31) {
         return {
           isValid: false,
-          errorMessage: 'Please provide the valid date\nso, we can have smooth booking\n\nDate should be between 1 and 31.',
+          errorMessage: 'Please provide the valid date',
         };
       }
     }
