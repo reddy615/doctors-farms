@@ -198,6 +198,17 @@ export default function ChatBotWidget() {
       }
     }
 
+    // Priority 1: Check if date number exists and is invalid (> 31 or < 1)
+    if (numbers.length > 0) {
+      const date = numbers[0];
+      if (date < 1 || date > 31) {
+        return {
+          isValid: false,
+          errorMessage: 'Please provide the valid date\nso, we can have smooth booking\n\nDate should be between 1 and 31.',
+        };
+      }
+    }
+
     // Case 1: User provides only date (no month)
     if (numbers.length > 0 && !monthInfo) {
       return {
@@ -206,7 +217,7 @@ export default function ChatBotWidget() {
       };
     }
 
-    // Case 2: User provides only month (no date)
+    // Case 2: User provides neither date nor month
     if (!monthInfo && numbers.length === 0) {
       return {
         isValid: false,
@@ -231,14 +242,6 @@ export default function ChatBotWidget() {
     }
 
     const date = numbers[0];
-
-    // Case 4: User provides date > 31 with valid month
-    if (date < 1 || date > 31) {
-      return {
-        isValid: false,
-        errorMessage: 'Please provide the valid date\nso, we can have smooth booking\n\nDate should be between 1 and 31.',
-      };
-    }
 
     // Format the date as "DD Month" (e.g., "11 June")
     const formattedDate = `${date} ${monthInfo.fullName}`;
