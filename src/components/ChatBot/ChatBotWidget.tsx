@@ -198,28 +198,37 @@ export default function ChatBotWidget() {
       }
     }
 
-    // Validate that we have both date and month
-    if (!monthInfo) {
+    // Case 1: User provides only date (no month)
+    if (numbers.length > 0 && !monthInfo) {
       return {
         isValid: false,
-        errorMessage: 'Please give the correct month. Months should be: January, February, March, April, May, June, July, August, September, October, November, or December (or their shortcuts like Jan, Feb, etc.)',
+        errorMessage: 'Please provide the month also\nso, we can have smooth booking\n\nFor example: 11 June or June 11',
       };
     }
 
-    if (numbers.length === 0) {
+    // Case 2: User provides only month (no date)
+    if (!monthInfo && numbers.length === 0) {
       return {
         isValid: false,
-        errorMessage: 'Please give the correct date. Please provide a date between 1 and 31.',
+        errorMessage: 'Please provide a valid month\nso I can assist you with an excellent booking experience.\n\nValid months: January, February, March, April, May, June, July, August, September, October, November, December (or shortcuts like Jan, Feb, etc.)',
+      };
+    }
+
+    // Case 3: User provides only month (no date numbers)
+    if (monthInfo && numbers.length === 0) {
+      return {
+        isValid: false,
+        errorMessage: 'Please provide the date as well\nso we can ensure a smooth booking experience.\n\nFor example: 11 June or June 11',
       };
     }
 
     const date = numbers[0];
 
-    // Validate date range
+    // Case 4: User provides date > 31 with valid month
     if (date < 1 || date > 31) {
       return {
         isValid: false,
-        errorMessage: 'Please give the correct date. Date should be between 1 and 31.',
+        errorMessage: 'Please provide the valid date\nso, we can have smooth booking\n\nDate should be between 1 and 31.',
       };
     }
 
@@ -432,7 +441,7 @@ export default function ChatBotWidget() {
     if (step === 'check-in-date') {
       const dateValidation = validateCheckInOutDate(userText);
       if (!dateValidation.isValid) {
-        appendBotMessage(`${dateValidation.errorMessage}\n\nFor example: 11 June or June 11`);
+        appendBotMessage(dateValidation.errorMessage);
         return;
       }
       setBookingDraft((prev) => ({ ...prev, checkInDate: dateValidation.formattedDate }));
@@ -444,7 +453,7 @@ export default function ChatBotWidget() {
     if (step === 'check-out-date') {
       const dateValidation = validateCheckInOutDate(userText);
       if (!dateValidation.isValid) {
-        appendBotMessage(`${dateValidation.errorMessage}\n\nFor example: 15 June or June 15`);
+        appendBotMessage(dateValidation.errorMessage);
         return;
       }
       setBookingDraft((prev) => ({ ...prev, checkOutDate: dateValidation.formattedDate }));
