@@ -211,104 +211,6 @@ export default function ChatBotWidget() {
     setBookingDraft({});
   };
 
-  const validateCheckInOutDate = (text: string): { isValid: boolean; formattedDate?: string; errorMessage?: string } => {
-    const trimmedText = text.trim();
-    
-    // Month mapping - full names and shortcuts
-    const monthMap: Record<string, { fullName: string; num: number }> = {
-      january: { fullName: 'January', num: 1 },
-      jan: { fullName: 'January', num: 1 },
-      february: { fullName: 'February', num: 2 },
-      feb: { fullName: 'February', num: 2 },
-      march: { fullName: 'March', num: 3 },
-      mar: { fullName: 'March', num: 3 },
-      april: { fullName: 'April', num: 4 },
-      apr: { fullName: 'April', num: 4 },
-      may: { fullName: 'May', num: 5 },
-      june: { fullName: 'June', num: 6 },
-      jun: { fullName: 'June', num: 6 },
-      july: { fullName: 'July', num: 7 },
-      jul: { fullName: 'July', num: 7 },
-      august: { fullName: 'August', num: 8 },
-      aug: { fullName: 'August', num: 8 },
-      september: { fullName: 'September', num: 9 },
-      sep: { fullName: 'September', num: 9 },
-      october: { fullName: 'October', num: 10 },
-      oct: { fullName: 'October', num: 10 },
-      november: { fullName: 'November', num: 11 },
-      nov: { fullName: 'November', num: 11 },
-      december: { fullName: 'December', num: 12 },
-      dec: { fullName: 'December', num: 12 },
-    };
-
-    // Extract date numbers from input
-    const numbers = trimmedText.match(/\d+/g)?.map(Number) || [];
-    
-    // Extract month name from input
-    let monthInfo: { fullName: string; num: number } | null = null;
-    const lowerText = trimmedText.toLowerCase();
-    
-    for (const [key, value] of Object.entries(monthMap)) {
-      if (lowerText.includes(key)) {
-        monthInfo = value;
-        break;
-      }
-    }
-
-    // Priority 1: Check if date number exists and is invalid (> 31 or < 1)
-    if (numbers.length > 0) {
-      const date = numbers[0];
-      if (date < 1 || date > 31) {
-        return {
-          isValid: false,
-          errorMessage: 'Please provide the valid date',
-        };
-      }
-    }
-
-    // Case 1: User provides only date (no month)
-    if (numbers.length > 0 && !monthInfo) {
-      return {
-        isValid: false,
-        errorMessage: 'Please provide the month also\nso, we can have smooth booking\n\nFor example: 11 June or June 11',
-      };
-    }
-
-    // Case 2: User provides neither date nor month
-    if (!monthInfo && numbers.length === 0) {
-      return {
-        isValid: false,
-        errorMessage: 'Please provide a valid month\nso I can assist you with an excellent booking experience.\n\nValid months: January, February, March, April, May, June, July, August, September, October, November, December (or shortcuts like Jan, Feb, etc.)',
-      };
-    }
-
-    // Case 3: User provides only month (no date numbers)
-    if (monthInfo && numbers.length === 0) {
-      return {
-        isValid: false,
-        errorMessage: 'Please provide the date as well\nso we can ensure a smooth booking experience.\n\nFor example: 11 June or June 11',
-      };
-    }
-
-    // At this point, we know monthInfo is not null and numbers.length > 0
-    if (!monthInfo) {
-      return {
-        isValid: false,
-        errorMessage: 'Please provide a valid month\nso I can assist you with an excellent booking experience.',
-      };
-    }
-
-    const date = numbers[0];
-
-    // Format the date as "DD Month" (e.g., "11 June")
-    const formattedDate = `${date} ${monthInfo.fullName}`;
-
-    return {
-      isValid: true,
-      formattedDate,
-    };
-  };
-
   const parseGuestCounts = (text: string) => {
     const lowerText = text.toLowerCase();
     const numberWords: Record<string, number> = {
@@ -419,6 +321,23 @@ export default function ChatBotWidget() {
     }, 1500);
   };
 
+  const handleCalendarDateSelect = (selectedDate: string) => {
+    if (!selectedDate) return;
+
+    if (bookingFlowStep === 'check-in-date') {
+      setBookingDraft((prev) => ({ ...prev, checkInDate: selectedDate }));
+      setBookingFlowStep('check-out-date');
+      appendBotMessage('Thank you 😊\nMay I know your\n📅 Check-out date');
+      return;
+    }
+
+    if (bookingFlowStep === 'check-out-date') {
+      setBookingDraft((prev) => ({ ...prev, checkOutDate: selectedDate }));
+      setBookingFlowStep('guests');
+      appendBotMessage('Perfect 👌\n👥 Number of guests');
+    }
+  };
+
   const sendBookingToBackend = async (payload: BookingDraft) => {
     const response = await apiFetch('/api/booking-inquiry', {
       method: 'POST',
@@ -508,31 +427,7 @@ export default function ChatBotWidget() {
   const handleAssistantMessage = async (userText: string) => {
     const step = bookingFlowStep;
 
-    if (step === 'check-in-date') {
-      const dateValidation = validateCheckInOutDate(userText);
-      if (!dateValidation.isValid) {
-        const errorMsg = dateValidation.errorMessage || 'Please provide a valid date and month.';
-        appendBotMessage(errorMsg);
-        return;
-      }
-      const formattedDate = dateValidation.formattedDate || userText;
-      setBookingDraft((prev) => ({ ...prev, checkInDate: formattedDate }));
-      setBookingFlowStep('check-out-date');
-      appendBotMessage('Thank you 😊\nMay I know your\n📅 Check-out date');
-      return;
-    }
-
-    if (step === 'check-out-date') {
-      const dateValidation = validateCheckInOutDate(userText);
-      if (!dateValidation.isValid) {
-        const errorMsg = dateValidation.errorMessage || 'Please provide a valid date and month.';
-        appendBotMessage(errorMsg);
-        return;
-      }
-      const formattedDate = dateValidation.formattedDate || userText;
-      setBookingDraft((prev) => ({ ...prev, checkOutDate: formattedDate }));
-      setBookingFlowStep('guests');
-      appendBotMessage('Perfect 👌\n👥 Number of guests');
+    if (step === 'check-in-date' || step === 'check-out-date') {
       return;
     }
 
@@ -867,6 +762,23 @@ export default function ChatBotWidget() {
                     onOptionClick={handleBookingOptionAction}
                   />
                 ))}
+                {(bookingFlowStep === 'check-in-date' || bookingFlowStep === 'check-out-date') && (
+                  <div className="mx-4 mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+                    <p className="mb-3 text-sm font-medium text-emerald-900">
+                      {bookingFlowStep === 'check-in-date' ? 'Choose your check-in date' : 'Choose your check-out date'}
+                    </p>
+                    <input
+                      type="date"
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                      min={bookingFlowStep === 'check-out-date' && bookingDraft.checkInDate ? bookingDraft.checkInDate : new Date().toISOString().split('T')[0]}
+                      value={bookingFlowStep === 'check-in-date' ? (bookingDraft.checkInDate || '') : (bookingDraft.checkOutDate || '')}
+                      onChange={(e) => handleCalendarDateSelect(e.target.value)}
+                    />
+                    <p className="mt-2 text-xs text-emerald-700">
+                      Tap a date to continue the booking flow.
+                    </p>
+                  </div>
+                )}
                 {loading && <TypingIndicator />}
                 <div ref={messagesEndRef} />
               </div>
@@ -894,7 +806,7 @@ export default function ChatBotWidget() {
               )}
 
               {/* Input Area */}
-              {!showBookingForm && (
+              {!showBookingForm && bookingFlowStep !== 'check-in-date' && bookingFlowStep !== 'check-out-date' && (
                 <form onSubmit={handleSendMessage} className="chatbot-input-area">
                   <input
                     type="text"
