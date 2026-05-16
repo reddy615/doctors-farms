@@ -222,6 +222,14 @@ export default function ChatBotWidget() {
       };
     }
 
+    // At this point, we know monthInfo is not null and numbers.length > 0
+    if (!monthInfo) {
+      return {
+        isValid: false,
+        errorMessage: 'Please provide a valid month\nso I can assist you with an excellent booking experience.',
+      };
+    }
+
     const date = numbers[0];
 
     // Case 4: User provides date > 31 with valid month
@@ -441,10 +449,12 @@ export default function ChatBotWidget() {
     if (step === 'check-in-date') {
       const dateValidation = validateCheckInOutDate(userText);
       if (!dateValidation.isValid) {
-        appendBotMessage(dateValidation.errorMessage);
+        const errorMsg = dateValidation.errorMessage || 'Please provide a valid date and month.';
+        appendBotMessage(errorMsg);
         return;
       }
-      setBookingDraft((prev) => ({ ...prev, checkInDate: dateValidation.formattedDate }));
+      const formattedDate = dateValidation.formattedDate || userText;
+      setBookingDraft((prev) => ({ ...prev, checkInDate: formattedDate }));
       setBookingFlowStep('check-out-date');
       appendBotMessage('Thank you 😊\nMay I know your\n📅 Check-out date');
       return;
@@ -453,10 +463,12 @@ export default function ChatBotWidget() {
     if (step === 'check-out-date') {
       const dateValidation = validateCheckInOutDate(userText);
       if (!dateValidation.isValid) {
-        appendBotMessage(dateValidation.errorMessage);
+        const errorMsg = dateValidation.errorMessage || 'Please provide a valid date and month.';
+        appendBotMessage(errorMsg);
         return;
       }
-      setBookingDraft((prev) => ({ ...prev, checkOutDate: dateValidation.formattedDate }));
+      const formattedDate = dateValidation.formattedDate || userText;
+      setBookingDraft((prev) => ({ ...prev, checkOutDate: formattedDate }));
       setBookingFlowStep('guests');
       appendBotMessage('Perfect 👌\n👥 Number of guests');
       return;
