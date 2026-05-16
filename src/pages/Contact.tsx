@@ -78,7 +78,7 @@ export default function Contact() {
   const [mailStatus, setMailStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'pending'>('idle');
   const [mailError, setMailError] = useState('');
   const [validationError, setValidationError] = useState('');
-  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<'sent' | 'delayed' | 'pending' | null>(null);
+  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<'sent' | 'delayed' | 'pending' | 'partial' | null>(null);
   const [mailHealth, setMailHealth] = useState<{
     checked: boolean;
     healthy: boolean;
@@ -86,6 +86,7 @@ export default function Contact() {
   }>({ checked: false, healthy: true, message: '' });
   const [selectedRoomPrice, setSelectedRoomPrice] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
+  const [emailResults, setEmailResults] = useState<{ admin?: string; user?: string } | null>(null);
 
   useEffect(() => {
     const checkMailHealth = async () => {
@@ -256,7 +257,9 @@ export default function Contact() {
       setMailStatus('sent');
       setInquiryId(result.inquiryId || '');
       setEmailDeliveryStatus(result.emailStatus || 'sent');
+      setEmailResults(result.emailResults || null);
       setSubmitted(true);
+      console.log('✅ Email delivery status:', result.emailStatus, 'Results:', result.emailResults);
     } catch (error) {
       console.error('Mail send error:', error);
       setMailStatus('error');
@@ -354,13 +357,24 @@ export default function Contact() {
                     <strong>✓ Inquiry Received!</strong> Inquiry ID: {inquiryId}
                   </p>
                   {emailDeliveryStatus === 'sent' && (
-                    <p className="mt-2 text-sm text-green-800">Confirmation email has been sent to {form.email}</p>
+                    <p className="mt-2 text-sm text-green-800">✓ Confirmation email has been sent to {form.email}</p>
+                  )}
+                  {emailDeliveryStatus === 'partial' && (
+                    <div className="mt-2 text-sm text-yellow-800">
+                      <p>Your inquiry was saved.</p>
+                      {emailResults?.admin === 'sent' && emailResults?.user === 'failed' && (
+                        <p className="mt-1">⚠️ Confirmation email to {form.email} could not be delivered. Please check your spam folder or contact us directly at doctorsfarms686@gmail.com or +91 99555 75969.</p>
+                      )}
+                      {emailResults?.admin === 'failed' && emailResults?.user === 'sent' && (
+                        <p className="mt-1">⚠️ Our team notification failed, but your confirmation email was sent. We'll still contact you shortly.</p>
+                      )}
+                    </div>
                   )}
                   {emailDeliveryStatus === 'delayed' && (
                     <p className="mt-2 text-sm text-yellow-800">Your inquiry is saved. Email confirmation may take a few minutes to arrive.</p>
                   )}
                   {emailDeliveryStatus === 'pending' && (
-                    <p className="mt-2 text-sm text-yellow-800">Your inquiry is saved. We're processing your submission and will contact you shortly.</p>
+                    <p className="mt-2 text-sm text-red-800">⚠️ Your inquiry is saved. Email delivery is temporarily unavailable, but our team will contact you shortly.</p>
                   )}
                 </div>
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-sm text-blue-900">

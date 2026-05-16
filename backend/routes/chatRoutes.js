@@ -254,7 +254,13 @@ router.post('/booking-inquiry', async (req, res) => {
     const adminFailed = adminResult.status === 'rejected';
     const userFailed = userResult.status === 'rejected';
 
+    console.log(`📧 [Booking ${inquiryId}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}, User: ${userFailed ? 'FAILED' : 'SUCCESS'}`);
+    if (adminFailed) console.error(`   Admin error:`, adminResult.reason instanceof Error ? adminResult.reason.message : adminResult.reason);
+    if (userFailed) console.error(`   User error:`, userResult.reason instanceof Error ? userResult.reason.message : userResult.reason);
+
     const emailStatus = adminFailed && userFailed ? 'pending' : (adminFailed || userFailed ? 'partial' : 'sent');
+
+    console.log(`📊 [Booking ${inquiryId}] Final email status: ${emailStatus}`);
 
     try {
       const fs = require('fs');

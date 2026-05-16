@@ -164,7 +164,8 @@ async function sendMailWithProvider(mailConfig, mail) {
     }
 
     const from = mail.from || mailFrom || contactEmail;
-    return resendClient.emails.send({
+    console.log(`[Resend] Sending to: ${mail.to}, from: ${from}`);
+    const result = await resendClient.emails.send({
       from,
       to: mail.to,
       bcc: mail.bcc,
@@ -173,13 +174,16 @@ async function sendMailWithProvider(mailConfig, mail) {
       text: mail.text,
       html: mail.html,
     });
+    console.log(`[Resend] Response:`, result);
+    return result;
   }
 
   if (!transporter) {
     throw new Error('Mail transporter is not configured');
   }
 
-  return transporter.sendMail({
+  console.log(`[SMTP] Sending to: ${mail.to}`);
+  const result = await transporter.sendMail({
     from: mail.from || `"Doctors Farms Website" <${mailFrom || contactEmail}>`,
     to: mail.to,
     bcc: mail.bcc,
@@ -188,6 +192,8 @@ async function sendMailWithProvider(mailConfig, mail) {
     text: mail.text,
     html: mail.html,
   });
+  console.log(`[SMTP] Response:`, result);
+  return result;
 }
 
 async function sendAdminNotification({ mail, mailConfig }) {
@@ -195,7 +201,14 @@ async function sendAdminNotification({ mail, mailConfig }) {
     throw new Error('Admin mail payload is required');
   }
 
-  return sendWithRetry(() => sendMailWithProvider(mailConfig, mail));
+  try {
+    const result = await sendWithRetry(() => sendMailWithProvider(mailConfig, mail));
+    console.log('✅ [EmailService] Admin notification sent successfully');
+    return result;
+  } catch (error) {
+    console.error('❌ [EmailService] Admin notification failed:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
 }
 
 async function sendUserConfirmation({ bookingData, inquiryId, mailConfig, overrides = {} }) {
@@ -207,13 +220,26 @@ async function sendUserConfirmation({ bookingData, inquiryId, mailConfig, overri
   const mail = buildUserConfirmationEmail(bookingData, inquiryId, supportInfo);
   const recipient = bookingData.email || bookingData.userEmail;
 
-  return sendWithRetry(() => sendMailWithProvider(mailConfig, {
-    from: mailConfig.mailFrom || `"Doctors Farms" <${mailConfig.contactEmail || DEFAULT_SUPPORT_EMAIL}>`,
-    to: recipient,
-    subject: mail.subject,
-    text: mail.text,
-    html: mail.html,
-  }));
+  if (!recipient) {
+    throw new Error(`No recipient email found for user confirmation. bookingData keys: ${Object.keys(bookingData).join(', ')}`);
+  }
+
+  console.log(`📧 [EmailService] Attempting to send user confirmation to: ${recipient}`);
+
+  try {
+    const result = await sendWithRetry(() => sendMailWithProvider(mailConfig, {
+      from: mailConfig.mailFrom || `"Doctors Farms" <${mailConfig.contactEmail || DEFAULT_SUPPORT_EMAIL}>`,
+      to: recipient,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+    }));
+    console.log(`✅ [EmailService] User confirmation sent successfully to: ${recipient}`);
+    return result;
+  } catch (error) {
+    console.error(`❌ [EmailService] User confirmation failed for ${recipient}:`, error instanceof Error ? error.message : String(error));
+    throw error;
+  }
 }
 
 module.exports = {

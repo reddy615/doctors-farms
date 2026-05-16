@@ -421,12 +421,18 @@ async function submitInquiry(req, res) {
   const adminFailed = adminResult.status === 'rejected';
   const userFailed = userResult.status === 'rejected';
 
+  console.log(`📧 [Inquiry ${inquiry.id}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}, User: ${userFailed ? 'FAILED' : 'SUCCESS'}`);
+  if (adminFailed) console.error(`   Admin error:`, adminResult.reason instanceof Error ? adminResult.reason.message : adminResult.reason);
+  if (userFailed) console.error(`   User error:`, userResult.reason instanceof Error ? userResult.reason.message : userResult.reason);
+
   if (adminFailed || userFailed) {
     const failure = adminResult.status === 'rejected' ? adminResult.reason : userResult.status === 'rejected' ? userResult.reason : null;
     smtpLastError = failure instanceof Error ? failure.message : failure ? String(failure) : smtpLastError;
   }
 
   const emailStatus = adminFailed && userFailed ? 'pending' : (adminFailed || userFailed ? 'partial' : 'sent');
+
+  console.log(`📊 [Inquiry ${inquiry.id}] Final email status: ${emailStatus}`);
 
   const updatedInquiries = readInquiries();
   const idx = updatedInquiries.findIndex((i) => i.id === inquiry.id);
