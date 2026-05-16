@@ -54,44 +54,27 @@ public class InquiryService {
             return false;
         });
 
-        CompletableFuture<Boolean> userFuture = CompletableFuture.supplyAsync(() -> {
-            try {
-                return emailService.sendInquiryUserConfirmation(inquiry);
-            } catch (Exception e) {
-                System.err.println("❌ [InquiryService] User email error: " + e.getMessage());
-                return false;
-            }
-        }).exceptionally(ex -> {
-            System.err.println("❌ [InquiryService] User future failed: " + ex.getMessage());
-            return false;
-        });
-
-        // Wait for both to complete (with a reasonable timeout)
+        // Wait for the admin notification to complete (with a reasonable timeout)
         try {
-            CompletableFuture.allOf(adminFuture, userFuture).get(30, TimeUnit.SECONDS);
+            CompletableFuture.allOf(adminFuture).get(30, TimeUnit.SECONDS);
         } catch (Exception e) {
             System.err.println("⚠️ [InquiryService] Waiting for email futures timed out or failed: " + e.getMessage());
         }
 
         boolean adminEmailSent = false;
-        boolean userEmailSent = false;
         try { adminEmailSent = adminFuture.getNow(false); } catch (Exception ignored) {}
-        try { userEmailSent = userFuture.getNow(false); } catch (Exception ignored) {}
 
         Map<String, String> emailResults = new HashMap<>();
         emailResults.put("admin", adminEmailSent ? "sent" : "failed");
-        emailResults.put("user", userEmailSent ? "sent" : "failed");
 
         String emailStatus;
-        if (adminEmailSent && userEmailSent) {
+        if (adminEmailSent) {
             emailStatus = "sent";
-        } else if (!adminEmailSent && !userEmailSent) {
-            emailStatus = "pending";
         } else {
-            emailStatus = "partial";
+            emailStatus = "pending";
         }
 
-        if (!adminEmailSent || !userEmailSent) {
+        if (!adminEmailSent) {
             System.err.println("⚠️ [InquiryService] Email results for " + inquiry.getInquiryId() + " -> " + emailResults);
         }
 
@@ -99,7 +82,6 @@ public class InquiryService {
         result.put("emailStatus", emailStatus);
         result.put("emailResults", emailResults);
         result.put("adminSent", adminEmailSent);
-        result.put("userSent", userEmailSent);
 
         return result;
     }

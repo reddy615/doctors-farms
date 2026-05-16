@@ -9,7 +9,7 @@ const { z } = require('zod');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
-const { sendAdminNotification, sendUserConfirmation } = require('./services/emailService');
+const { sendAdminNotification } = require('./services/emailService');
 
 dotenv.config({ path: path.join(__dirname, '.env'), override: true });
 
@@ -405,31 +405,11 @@ app.post('/api/test-email', async (req, res) => {
         });
       }
     } else if (testType === 'user') {
-      try {
-        const userResult = await sendUserConfirmation({
-          bookingData: testData,
-          inquiryId: testData.id,
-          mailConfig,
-          overrides: { supportEmail: CONTACT_EMAIL },
-        });
-        console.log('✅ User test email sent:', userResult);
-        return res.json({
-          success: true,
-          message: 'Test user email sent successfully',
-          provider: usingResend ? 'Resend' : 'SMTP',
-          recipient: testEmail,
-          result: { messageId: userResult?.messageId || userResult?.data?.id },
-        });
-      } catch (error) {
-        console.error('❌ User test email failed:', error);
-        return res.status(500).json({
-          success: false,
-          message: 'User test email failed',
-          error: error instanceof Error ? error.message : String(error),
-          provider: usingResend ? 'Resend' : 'SMTP',
-          recipient: testEmail,
-        });
-      }
+      return res.status(400).json({
+        success: false,
+        message: 'User test emails are disabled. Admin delivery is the only active mail path.',
+        provider: usingResend ? 'Resend' : 'SMTP',
+      });
     }
   } catch (error) {
     console.error('❌ [TEST-EMAIL] Unexpected error:', error);
@@ -508,26 +488,22 @@ async function submitInquiry(req, res) {
     contactEmail: CONTACT_EMAIL,
   };
 
-  const [adminResult, userResult] = await Promise.allSettled([
+  const [adminResult] = await Promise.allSettled([
     sendAdminNotification({ mail: adminMail, mailConfig }),
-    sendUserConfirmation({ bookingData: inquiry, inquiryId: inquiry.id, mailConfig, overrides: { supportEmail: CONTACT_EMAIL } }),
   ]);
 
   const adminInfo = adminResult.status === 'fulfilled' ? adminResult.value : null;
-  const userInfo = userResult.status === 'fulfilled' ? userResult.value : null;
   const adminFailed = adminResult.status === 'rejected';
-  const userFailed = userResult.status === 'rejected';
 
-  console.log(`📧 [Inquiry ${inquiry.id}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}, User: ${userFailed ? 'FAILED' : 'SUCCESS'}`);
+  console.log(`📧 [Inquiry ${inquiry.id}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}`);
   if (adminFailed) console.error(`   Admin error:`, adminResult.reason instanceof Error ? adminResult.reason.message : adminResult.reason);
-  if (userFailed) console.error(`   User error:`, userResult.reason instanceof Error ? userResult.reason.message : userResult.reason);
 
-  if (adminFailed || userFailed) {
-    const failure = adminResult.status === 'rejected' ? adminResult.reason : userResult.status === 'rejected' ? userResult.reason : null;
+  if (adminFailed) {
+    const failure = adminResult.reason;
     smtpLastError = failure instanceof Error ? failure.message : failure ? String(failure) : smtpLastError;
   }
 
-  const emailStatus = adminFailed && userFailed ? 'pending' : (adminFailed || userFailed ? 'partial' : 'sent');
+  const emailStatus = adminFailed ? 'pending' : 'sent';
 
   console.log(`📊 [Inquiry ${inquiry.id}] Final email status: ${emailStatus}`);
 
@@ -536,20 +512,18 @@ async function submitInquiry(req, res) {
   if (idx !== -1) {
     updatedInquiries[idx].emailStatus = emailStatus;
     updatedInquiries[idx].adminMessageId = adminInfo?.messageId || adminInfo?.data?.id || null;
-    updatedInquiries[idx].userMessageId = userInfo?.messageId || userInfo?.data?.id || null;
     writeInquiries(updatedInquiries);
   }
 
   res.json({
     success: true,
     message: emailStatus === 'sent'
-      ? 'Inquiry saved and both emails were sent.'
-      : 'Inquiry saved. One or more emails could not be delivered, but both were attempted.',
+      ? 'Inquiry saved and admin notification was sent.'
+      : 'Inquiry saved. Admin notification could not be delivered, but the inquiry was stored.',
     inquiryId: inquiry.id,
     emailStatus,
     emailResults: {
       admin: adminFailed ? 'failed' : 'sent',
-      user: userFailed ? 'failed' : 'sent',
     },
   });
 }

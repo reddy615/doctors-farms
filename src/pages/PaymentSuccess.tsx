@@ -8,7 +8,7 @@ export default function PaymentSuccess() {
             Thank you for your payment. Your booking has been confirmed.
           </p>
           <p className="mt-2 text-sm text-green-600">
-            You will receive a confirmation email shortly with your booking details.
+            Our team has received your booking and will contact you shortly.
           </p>
         </div>
       </div>

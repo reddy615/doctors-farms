@@ -71,12 +71,12 @@ public class InquiryController {
             Inquiry inquiry = inquiryService.createInquiry(name, email, phone, stay, message);
             System.out.println("✅ Inquiry created: " + inquiry.getInquiryId());
 
-            // Send emails (admin + user) and get detailed results
+            // Send admin email and get detailed results
             Map<String, Object> emailResult = inquiryService.sendInquiryEmails(inquiry);
 
             String emailStatus = (String) emailResult.getOrDefault("emailStatus", "pending");
             @SuppressWarnings("unchecked")
-            Map<String, String> emailResults = (Map<String, String>) emailResult.getOrDefault("emailResults", Map.of("admin", "failed", "user", "failed"));
+            Map<String, String> emailResults = (Map<String, String>) emailResult.getOrDefault("emailResults", Map.of("admin", "failed"));
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -87,14 +87,11 @@ public class InquiryController {
             String message;
             switch (emailStatus) {
                 case "sent":
-                    message = "Inquiry saved and emails sent.";
-                    break;
-                case "partial":
-                    message = "Inquiry saved. Some emails failed to deliver.";
+                    message = "Inquiry saved and admin notification sent.";
                     break;
                 case "pending":
                 default:
-                    message = "Inquiry saved. Email delivery pending.";
+                    message = "Inquiry saved. Admin notification pending.";
                     break;
             }
             response.put("message", message);
@@ -110,7 +107,7 @@ public class InquiryController {
                 Inquiry inquiry = inquiryService.createInquiry(name, email, phone, stay, message);
                 Map<String, Object> fallbackResponse = new HashMap<>();
                 fallbackResponse.put("success", true);
-                fallbackResponse.put("message", "Inquiry saved successfully. Email notifications will be sent shortly.");
+                fallbackResponse.put("message", "Inquiry saved successfully. Admin notification will be sent shortly.");
                 fallbackResponse.put("inquiryId", inquiry.getInquiryId());
                 fallbackResponse.put("emailStatus", "pending");
                 fallbackResponse.put("note", e.getMessage());

@@ -4,7 +4,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 const { handleChatMessage, validateBookingData, saveBookingInquiry } = require('../services/chatService');
-const { sendAdminNotification, sendUserConfirmation } = require('../services/emailService');
+const { sendAdminNotification } = require('../services/emailService');
 
 dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
@@ -237,7 +237,7 @@ router.post('/booking-inquiry', async (req, res) => {
 
     const adminMail = formatBookingEmail(bookingData, inquiryId);
 
-    const [adminResult, userResult] = await Promise.allSettled([
+    const [adminResult] = await Promise.allSettled([
       sendAdminNotification({ mail: {
         from: `"Doctors Farms Website" <${MAIL_FROM}>`,
         to: CONTACT_EMAIL,
@@ -246,19 +246,15 @@ router.post('/booking-inquiry', async (req, res) => {
         text: adminMail.text,
         html: adminMail.html,
       }, mailConfig }),
-      sendUserConfirmation({ bookingData, inquiryId, mailConfig, overrides: { supportEmail: CONTACT_EMAIL } }),
     ]);
 
     const adminInfo = adminResult.status === 'fulfilled' ? adminResult.value : null;
-    const userInfo = userResult.status === 'fulfilled' ? userResult.value : null;
     const adminFailed = adminResult.status === 'rejected';
-    const userFailed = userResult.status === 'rejected';
 
-    console.log(`📧 [Booking ${inquiryId}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}, User: ${userFailed ? 'FAILED' : 'SUCCESS'}`);
+    console.log(`📧 [Booking ${inquiryId}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}`);
     if (adminFailed) console.error(`   Admin error:`, adminResult.reason instanceof Error ? adminResult.reason.message : adminResult.reason);
-    if (userFailed) console.error(`   User error:`, userResult.reason instanceof Error ? userResult.reason.message : userResult.reason);
 
-    const emailStatus = adminFailed && userFailed ? 'pending' : (adminFailed || userFailed ? 'partial' : 'sent');
+    const emailStatus = adminFailed ? 'pending' : 'sent';
 
     console.log(`📊 [Booking ${inquiryId}] Final email status: ${emailStatus}`);
 
@@ -272,7 +268,6 @@ router.post('/booking-inquiry', async (req, res) => {
         if (idx !== -1) {
           inquiries[idx].emailStatus = emailStatus;
           inquiries[idx].adminMessageId = adminInfo?.messageId || adminInfo?.data?.id || null;
-          inquiries[idx].userMessageId = userInfo?.messageId || userInfo?.data?.id || null;
           fs.writeFileSync(filePath, JSON.stringify(inquiries, null, 2));
         }
       }
@@ -284,12 +279,11 @@ router.post('/booking-inquiry', async (req, res) => {
       success: true,
       inquiryId,
       message: emailStatus === 'sent'
-        ? 'Booking inquiry submitted successfully. Confirmation emails sent.'
-        : 'Booking inquiry submitted successfully. Email delivery was partially successful.',
+        ? 'Booking inquiry submitted successfully. Admin notification sent.'
+        : 'Booking inquiry submitted successfully. Admin notification is being processed.',
       emailStatus,
       emailResults: {
         admin: adminFailed ? 'failed' : 'sent',
-        user: userFailed ? 'failed' : 'sent',
       },
     });
   } catch (error) {

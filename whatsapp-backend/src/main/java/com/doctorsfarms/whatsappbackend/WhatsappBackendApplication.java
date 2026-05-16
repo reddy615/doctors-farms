@@ -32,7 +32,7 @@ class EmailConfigurationDiagnostic implements CommandLineRunner {
         
         if (emailPass == null || emailPass.isBlank()) {
             System.err.println("\n⚠️  WARNING: EMAIL_PASS environment variable is NOT set!");
-            System.err.println("    User confirmation emails will FAIL without this!");
+            System.err.println("    Admin notifications will FAIL without this!");
             System.err.println("    Set EMAIL_PASS to your Gmail App Password:");
             System.err.println("    1. Go to Google Account Security: https://myaccount.google.com/security");
             System.err.println("    2. Enable 2-Step Verification if not already enabled");
