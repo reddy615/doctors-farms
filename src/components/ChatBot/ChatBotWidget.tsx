@@ -12,7 +12,7 @@ interface Message {
   text: string;
   sender: 'user' | 'bot';
   timestamp: Date;
-  actionType?: 'booking' | 'faq' | 'conversation';
+  actionType?: 'booking' | 'booking-summary' | 'booking-confirmation' | 'faq' | 'conversation';
   options?: Array<{
     label: string;
     value: string;
@@ -44,7 +44,13 @@ interface BookingDraft {
   totalPrice?: number;
 }
 
+interface ChatHistoryPayload {
+  startedAt: string;
+  messages: Array<Omit<Message, 'timestamp'> & { timestamp: string }>;
+}
+
 const CHAT_HISTORY_STORAGE_KEY = 'doctors-farms-chat-history';
+const CHAT_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 const HERITAGE_COTTAGE_PRICE = 15000;
 
 const defaultMessages: Message[] = [
@@ -58,23 +64,72 @@ const defaultMessages: Message[] = [
 
 // Popular questions removed per user request
 
-function loadStoredMessages(): Message[] {
-  if (typeof window === 'undefined') return defaultMessages;
+function isPersistentChatMessage(message: Message) {
+  return message.actionType === 'booking-summary' || message.actionType === 'booking-confirmation';
+}
+
+function normalizeStoredMessages(messages: ChatHistoryPayload['messages']): Message[] {
+  return messages.map((message) => ({
+    ...message,
+    timestamp: new Date(message.timestamp),
+  }));
+}
+
+function loadStoredChatHistory(): { messages: Message[]; startedAt: string } {
+  if (typeof window === 'undefined') {
+    return {
+      messages: defaultMessages,
+      startedAt: new Date().toISOString(),
+    };
+  }
 
   try {
     const stored = window.localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
-    if (!stored) return defaultMessages;
+    if (!stored) {
+      return {
+        messages: defaultMessages,
+        startedAt: new Date().toISOString(),
+      };
+    }
 
-    const parsed = JSON.parse(stored) as Array<Omit<Message, 'timestamp'> & { timestamp: string }>;
-    if (!Array.isArray(parsed) || parsed.length === 0) return defaultMessages;
+    const parsed = JSON.parse(stored) as ChatHistoryPayload | Array<Omit<Message, 'timestamp'> & { timestamp: string }>;
+    const now = Date.now();
 
-    return parsed.map((message) => ({
-      ...message,
-      timestamp: new Date(message.timestamp),
-    }));
+    let startedAt = new Date().toISOString();
+    let messages: Message[] = defaultMessages;
+
+    if (Array.isArray(parsed)) {
+      messages = normalizeStoredMessages(parsed);
+      const earliestMessage = messages.reduce((earliest, message) => (
+        message.timestamp.getTime() < earliest.getTime() ? message.timestamp : earliest
+      ), messages[0]?.timestamp || new Date());
+      startedAt = earliestMessage.toISOString();
+    } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.messages)) {
+      startedAt = parsed.startedAt || startedAt;
+      messages = normalizeStoredMessages(parsed.messages);
+    }
+
+    const startedAtTime = new Date(startedAt).getTime();
+    const isExpired = Number.isFinite(startedAtTime) && now - startedAtTime >= CHAT_HISTORY_TTL_MS;
+
+    if (isExpired) {
+      const persistentMessages = messages.filter(isPersistentChatMessage);
+      return {
+        messages: persistentMessages.length > 0 ? persistentMessages : defaultMessages,
+        startedAt: persistentMessages.length > 0 ? startedAt : new Date().toISOString(),
+      };
+    }
+
+    return {
+      messages: messages.length > 0 ? messages : defaultMessages,
+      startedAt,
+    };
   } catch (error) {
     console.error('Failed to load chat history:', error);
-    return defaultMessages;
+    return {
+      messages: defaultMessages,
+      startedAt: new Date().toISOString(),
+    };
   }
 }
 
@@ -91,9 +146,10 @@ function createDefaultMessages(): Message[] {
 
 export default function ChatBotWidget() {
   const [chatState, setChatState] = useState<ChatState>('closed');
-  const initialMessages = loadStoredMessages();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [showQuickActions, setShowQuickActions] = useState(initialMessages.length === 1);
+  const initialChatHistory = loadStoredChatHistory();
+  const [messages, setMessages] = useState<Message[]>(initialChatHistory.messages);
+  const [chatHistoryStartedAt] = useState(initialChatHistory.startedAt);
+  const [showQuickActions, setShowQuickActions] = useState(initialChatHistory.messages.length === 1);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -101,6 +157,7 @@ export default function ChatBotWidget() {
   const [bookingDraft, setBookingDraft] = useState<BookingDraft>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasHydratedRef = useRef(false);
+  const hasPrunedExpiredHistoryRef = useRef(false);
 
   const openChatWindow = () => {
     setChatState('open');
@@ -423,6 +480,8 @@ export default function ChatBotWidget() {
         const responseData = await sendBookingToBackend(payload);
         appendBotMessage(
           `Wonderful 🎉\nYour booking has been successfully confirmed.\nAnd our team will contact you soon\n\nBooking ID: ${responseData.inquiryId || 'Pending'}`,
+          undefined,
+          'booking-confirmation',
         );
       } catch (error) {
         appendBotMessage(
@@ -553,7 +612,7 @@ export default function ChatBotWidget() {
       appendBotMessage(createBookingSummary(nextDraft), [
         { label: 'YES', value: 'yes' },
         { label: 'NO', value: 'no' },
-      ], 'booking');
+      ], 'booking-summary');
       return;
     }
   };
@@ -570,8 +629,45 @@ export default function ChatBotWidget() {
       return;
     }
 
-    window.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(messages));
-  }, [messages, loading]);
+    const payload: ChatHistoryPayload = {
+      startedAt: chatHistoryStartedAt,
+      messages: messages.map((message) => ({
+        ...message,
+        timestamp: message.timestamp.toISOString(),
+      })),
+    };
+
+    window.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(payload));
+  }, [messages, loading, chatHistoryStartedAt]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const startedAtTime = new Date(chatHistoryStartedAt).getTime();
+    if (!Number.isFinite(startedAtTime)) return;
+
+    const remainingTime = startedAtTime + CHAT_HISTORY_TTL_MS - Date.now();
+
+    if (remainingTime <= 0) {
+      if (hasPrunedExpiredHistoryRef.current) return;
+      hasPrunedExpiredHistoryRef.current = true;
+      setMessages((currentMessages) => {
+        const preservedMessages = currentMessages.filter(isPersistentChatMessage);
+        return preservedMessages.length > 0 ? preservedMessages : defaultMessages;
+      });
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      hasPrunedExpiredHistoryRef.current = true;
+      setMessages((currentMessages) => {
+        const preservedMessages = currentMessages.filter(isPersistentChatMessage);
+        return preservedMessages.length > 0 ? preservedMessages : defaultMessages;
+      });
+    }, remainingTime);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [chatHistoryStartedAt]);
 
   const generateId = () => `msg_${Date.now()}_${Math.random()}`;
 
@@ -695,6 +791,7 @@ export default function ChatBotWidget() {
         text: `Great! Your booking inquiry has been submitted. Confirmation ID: ${responseData.inquiryId}. Our team will contact you shortly.`,
         sender: 'bot',
         timestamp: new Date(),
+        actionType: 'booking-confirmation',
       };
       setMessages((prev) => [...prev, confirmMsg]);
       setShowBookingForm(false);
