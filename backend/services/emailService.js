@@ -181,22 +181,45 @@ async function sendMailWithProvider(mailConfig, mail) {
 
     const from = mail.from || mailFrom || contactEmail;
     console.log(`[Resend] Sending to: ${mail.to}, from: ${from}`);
-    const result = await resendClient.emails.send({
-      from,
-      to: mail.to,
-      bcc: mail.bcc,
-      replyTo: mail.replyTo,
-      subject: mail.subject,
-      text: mail.text,
-      html: mail.html,
-    });
-    console.log(`[Resend] Response:`, result);
-    
-    // Check for Resend errors
-    if (result.error) {
-      throw new Error(`Resend API error: ${result.error.message || JSON.stringify(result.error)}`);
+    try {
+      const result = await resendClient.emails.send({
+        from,
+        to: mail.to,
+        bcc: mail.bcc,
+        replyTo: mail.replyTo,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+      });
+      console.log(`[Resend] Response:`, result);
+      if (result.error) {
+        throw new Error(`Resend API error: ${result.error.message || JSON.stringify(result.error)}`);
+      }
+      return result;
+    } catch (resendErr) {
+      console.error('[Resend] Error sending email:', resendErr instanceof Error ? resendErr.message : String(resendErr));
+      // If SMTP transporter is available, fall back to SMTP for delivery
+      if (transporter) {
+        console.log('[EmailService] Falling back to SMTP transporter due to Resend error');
+        try {
+          const smtpResult = await transporter.sendMail({
+            from: mail.from || `"Doctors Farms Website" <${mailFrom || contactEmail}>`,
+            to: mail.to,
+            bcc: mail.bcc,
+            replyTo: mail.replyTo,
+            subject: mail.subject,
+            text: mail.text,
+            html: mail.html,
+          });
+          console.log('[SMTP] Fallback response:', smtpResult);
+          return smtpResult;
+        } catch (smtpErr) {
+          console.error('[SMTP] Fallback also failed:', smtpErr instanceof Error ? smtpErr.message : String(smtpErr));
+          throw resendErr;
+        }
+      }
+      throw resendErr;
     }
-    return result;
   }
 
   if (!transporter) {
