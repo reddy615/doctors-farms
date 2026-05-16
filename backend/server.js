@@ -344,6 +344,103 @@ function normalizeInquiryInput(body = {}) {
   };
 }
 
+/* ----------------------------- TEST EMAIL ENDPOINT ----------------------------- */
+
+app.post('/api/test-email', async (req, res) => {
+  const { testEmail, testType } = req.body;
+
+  if (!testEmail) {
+    return res.status(400).json({
+      success: false,
+      message: 'testEmail parameter required',
+    });
+  }
+
+  console.log(`🧪 [TEST-EMAIL] Testing ${testType || 'user'} email to: ${testEmail}`);
+
+  try {
+    const mailConfig = {
+      usingResend,
+      resendClient,
+      transporter,
+      mailFrom: MAIL_FROM,
+      contactEmail: CONTACT_EMAIL,
+    };
+
+    const testData = {
+      id: `TEST_${Date.now()}`,
+      name: 'Test User',
+      email: testEmail,
+      phone: '+91 9999999999',
+      roomType: 'Test Room',
+      checkInDate: new Date().toISOString().split('T')[0],
+      checkOutDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      totalPrice: 5000,
+    };
+
+    if (testType === 'admin' || !testType) {
+      const adminMail = {
+        from: `"Doctors Farms Test" <${MAIL_FROM}>`,
+        to: CONTACT_EMAIL,
+        subject: '[TEST] Admin notification test',
+        html: `<p>This is a test admin notification for email: ${testEmail}</p><p>Timestamp: ${new Date().toISOString()}</p>`,
+      };
+
+      try {
+        const adminResult = await sendAdminNotification({ mail: adminMail, mailConfig });
+        console.log('✅ Admin test email sent:', adminResult);
+        return res.json({
+          success: true,
+          message: 'Test admin email sent successfully',
+          provider: usingResend ? 'Resend' : 'SMTP',
+          result: { messageId: adminResult?.messageId || adminResult?.data?.id },
+        });
+      } catch (error) {
+        console.error('❌ Admin test email failed:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Admin test email failed',
+          error: error instanceof Error ? error.message : String(error),
+          provider: usingResend ? 'Resend' : 'SMTP',
+        });
+      }
+    } else if (testType === 'user') {
+      try {
+        const userResult = await sendUserConfirmation({
+          bookingData: testData,
+          inquiryId: testData.id,
+          mailConfig,
+          overrides: { supportEmail: CONTACT_EMAIL },
+        });
+        console.log('✅ User test email sent:', userResult);
+        return res.json({
+          success: true,
+          message: 'Test user email sent successfully',
+          provider: usingResend ? 'Resend' : 'SMTP',
+          recipient: testEmail,
+          result: { messageId: userResult?.messageId || userResult?.data?.id },
+        });
+      } catch (error) {
+        console.error('❌ User test email failed:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'User test email failed',
+          error: error instanceof Error ? error.message : String(error),
+          provider: usingResend ? 'Resend' : 'SMTP',
+          recipient: testEmail,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('❌ [TEST-EMAIL] Unexpected error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Test email endpoint error',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 /* ----------------------------- INQUIRY HANDLER ----------------------------- */
 
 async function submitInquiry(req, res) {
