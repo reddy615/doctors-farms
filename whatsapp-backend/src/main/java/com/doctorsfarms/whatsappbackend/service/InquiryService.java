@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class InquiryService {
@@ -39,15 +41,67 @@ public class InquiryService {
         return inquiryRepository.save(inquiry);
     }
 
-    public boolean sendInquiryEmails(Inquiry inquiry) {
-        boolean adminEmailSent = emailService.sendInquiryAdminNotification(inquiry);
-        boolean userEmailSent = emailService.sendInquiryUserConfirmation(inquiry);
+    public Map<String, Object> sendInquiryEmails(Inquiry inquiry) {
+        CompletableFuture<Boolean> adminFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return emailService.sendInquiryAdminNotification(inquiry);
+            } catch (Exception e) {
+                System.err.println("❌ [InquiryService] Admin email error: " + e.getMessage());
+                return false;
+            }
+        }).exceptionally(ex -> {
+            System.err.println("❌ [InquiryService] Admin future failed: " + ex.getMessage());
+            return false;
+        });
 
-        if (!adminEmailSent || !userEmailSent) {
-            System.err.println("⚠️ [InquiryService] Some emails may have failed for inquiry " + inquiry.getInquiryId());
+        CompletableFuture<Boolean> userFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return emailService.sendInquiryUserConfirmation(inquiry);
+            } catch (Exception e) {
+                System.err.println("❌ [InquiryService] User email error: " + e.getMessage());
+                return false;
+            }
+        }).exceptionally(ex -> {
+            System.err.println("❌ [InquiryService] User future failed: " + ex.getMessage());
+            return false;
+        });
+
+        // Wait for both to complete (with a reasonable timeout)
+        try {
+            CompletableFuture.allOf(adminFuture, userFuture).get(30, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            System.err.println("⚠️ [InquiryService] Waiting for email futures timed out or failed: " + e.getMessage());
         }
 
-        return adminEmailSent && userEmailSent;
+        boolean adminEmailSent = false;
+        boolean userEmailSent = false;
+        try { adminEmailSent = adminFuture.getNow(false); } catch (Exception ignored) {}
+        try { userEmailSent = userFuture.getNow(false); } catch (Exception ignored) {}
+
+        Map<String, String> emailResults = new HashMap<>();
+        emailResults.put("admin", adminEmailSent ? "sent" : "failed");
+        emailResults.put("user", userEmailSent ? "sent" : "failed");
+
+        String emailStatus;
+        if (adminEmailSent && userEmailSent) {
+            emailStatus = "sent";
+        } else if (!adminEmailSent && !userEmailSent) {
+            emailStatus = "pending";
+        } else {
+            emailStatus = "partial";
+        }
+
+        if (!adminEmailSent || !userEmailSent) {
+            System.err.println("⚠️ [InquiryService] Email results for " + inquiry.getInquiryId() + " -> " + emailResults);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("emailStatus", emailStatus);
+        result.put("emailResults", emailResults);
+        result.put("adminSent", adminEmailSent);
+        result.put("userSent", userEmailSent);
+
+        return result;
     }
 
     public List<Inquiry> getAllInquiries() {

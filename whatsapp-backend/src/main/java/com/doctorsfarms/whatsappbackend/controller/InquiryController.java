@@ -71,14 +71,33 @@ public class InquiryController {
             Inquiry inquiry = inquiryService.createInquiry(name, email, phone, stay, message);
             System.out.println("✅ Inquiry created: " + inquiry.getInquiryId());
 
-            // Send emails
-            boolean emailsSent = inquiryService.sendInquiryEmails(inquiry);
+            // Send emails (admin + user) and get detailed results
+            Map<String, Object> emailResult = inquiryService.sendInquiryEmails(inquiry);
+
+            String emailStatus = (String) emailResult.getOrDefault("emailStatus", "pending");
+            @SuppressWarnings("unchecked")
+            Map<String, String> emailResults = (Map<String, String>) emailResult.getOrDefault("emailResults", Map.of("admin", "failed", "user", "failed"));
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("message", emailsSent ? "Inquiry saved and emails sent." : "Inquiry saved. Email delivery delayed.");
             response.put("inquiryId", inquiry.getInquiryId());
-            response.put("emailStatus", emailsSent ? "sent" : "delayed");
+            response.put("emailStatus", emailStatus);
+            response.put("emailResults", emailResults);
+
+            String message;
+            switch (emailStatus) {
+                case "sent":
+                    message = "Inquiry saved and emails sent.";
+                    break;
+                case "partial":
+                    message = "Inquiry saved. Some emails failed to deliver.";
+                    break;
+                case "pending":
+                default:
+                    message = "Inquiry saved. Email delivery pending.";
+                    break;
+            }
+            response.put("message", message);
 
             System.out.println("✅ [SEND-MAIL] Response: " + response);
             return ResponseEntity.ok(response);
