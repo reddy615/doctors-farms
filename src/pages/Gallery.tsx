@@ -7,7 +7,7 @@ const galleryImages = [
   "/gallery-3.jpg",
   "/gallery-4.jpg",
   "/gallery-5.jpg",
-  "/gallery-6.jpg",
+  "/gallery-6.jpeg",
   "/pool-photo.jpg",
   "/gallery-7.jpeg",
   "/gallery-photo.jpg",
