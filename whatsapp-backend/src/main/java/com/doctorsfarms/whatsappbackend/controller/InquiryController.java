@@ -19,7 +19,7 @@ public class InquiryController {
     private InquiryService inquiryService;
 
     // Health check endpoints
-    @GetMapping("/health")
+    @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> health() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "ok");
@@ -84,17 +84,17 @@ public class InquiryController {
             response.put("emailStatus", emailStatus);
             response.put("emailResults", emailResults);
 
-            String message;
+            String responseMessage;
             switch (emailStatus) {
                 case "sent":
-                    message = "Inquiry saved and admin notification sent.";
+                    responseMessage = "Inquiry saved and admin notification sent.";
                     break;
                 case "pending":
                 default:
-                    message = "Inquiry saved. Admin notification pending.";
+                    responseMessage = "Inquiry saved. Admin notification pending.";
                     break;
             }
-            response.put("message", message);
+            response.put("message", responseMessage);
 
             System.out.println("✅ [SEND-MAIL] Response: " + response);
             return ResponseEntity.ok(response);

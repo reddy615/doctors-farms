@@ -67,7 +67,7 @@ public class EmailService {
                 lastError = e;
                 System.err.println("❌ [EmailService] MailSendException on attempt " + attempt + " for " + to);
                 System.err.println("   Error message: " + e.getMessage());
-                System.err.println("   Failed message: " + e.getFailedMessage());
+                System.err.println("   Failed messages: " + e.getFailedMessages());
                 e.printStackTrace();
                 
                 if (attempt < MAX_RETRIES) {
