@@ -32,6 +32,7 @@ const allowedOrigins = [
   'http://localhost:5000',
   'http://127.0.0.1:5000',
   FRONTEND_URL,
+  'https://doctors-farms.onrender.com',
   'https://doctors-farms-production.up.railway.app',
   'https://www.doctorsfarms.in',
   'https://doctorsfarms.in',
