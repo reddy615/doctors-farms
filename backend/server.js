@@ -36,6 +36,8 @@ const allowedOrigins = [
   'https://doctors-farms-production.up.railway.app',
   'https://www.doctorsfarms.in',
   'https://doctorsfarms.in',
+  'https://doctorsfarmnunna.in',
+  'https://www.doctorsfarmnunna.in',
 ].filter(Boolean);
 
 console.log('✅ CORS Allowed Origins:', allowedOrigins);
