@@ -19,6 +19,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 const isProduction = process.env.NODE_ENV === 'production';
 const frontendRoot = path.resolve(__dirname, '..');
+const frontendDist = path.resolve(__dirname, '../dist');
 
 let vite;
 
@@ -110,6 +111,18 @@ async function setupFrontendMiddleware() {
 }
 
 /* ----------------------------- HEALTH ROUTES ----------------------------- */
+
+function sendFrontendOrHomepage(req, res) {
+  const distIndex = path.join(frontendDist, 'index.html');
+
+  if (fs.existsSync(distIndex)) {
+    return res.sendFile(distIndex);
+  }
+
+  return res.status(200).send('Doctors Farms Website is Running');
+}
+
+app.get('/', sendFrontendOrHomepage);
 
 app.get('/health', (req, res) => {
   res.json({
@@ -727,7 +740,7 @@ async function start() {
       }
 
       if (isProduction) {
-        return res.sendFile(path.join(__dirname, '../dist/index.html'));
+        return sendFrontendOrHomepage(req, res);
       }
 
       const template = fs.readFileSync(path.resolve(frontendRoot, 'index.html'), 'utf-8');
