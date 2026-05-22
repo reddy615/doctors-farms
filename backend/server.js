@@ -45,14 +45,17 @@ console.log('✅ CORS Allowed Origins:', allowedOrigins);
 app.use(
   cors({
     origin(origin, callback) {
+      // allow requests with no origin (Postman, server-to-server, health checks)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
+      // Do NOT throw an error here — return false so the request is rejected by CORS
+      // without raising an exception that can crash or be treated as a fatal error.
       console.warn(`⚠️ CORS blocked origin: ${origin}`);
-      return callback(new Error(`CORS policy: origin ${origin} not allowed`));
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
