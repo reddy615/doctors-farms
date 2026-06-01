@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 const { handleChatMessage, validateBookingData, saveBookingInquiry } = require('../services/chatService');
 const { sendAdminNotification } = require('../services/emailService');
+const { sendBookingConfirmationEmail } = require('../services/emailConfirmationService');
 
 dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
@@ -220,6 +221,7 @@ router.post('/booking-inquiry', async (req, res) => {
         const idx = inquiries.findIndex((i) => i.id === inquiryId);
         if (idx !== -1) {
           inquiries[idx].emailStatus = 'queued';
+          inquiries[idx].userConfirmationEmailStatus = 'queued';
           fs.writeFileSync(filePath, JSON.stringify(inquiries, null, 2));
         }
       }
@@ -237,7 +239,7 @@ router.post('/booking-inquiry', async (req, res) => {
 
     const adminMail = formatBookingEmail(bookingData, inquiryId);
 
-    const [adminResult] = await Promise.allSettled([
+    const [adminResult, userResult] = await Promise.allSettled([
       sendAdminNotification({ mail: {
         from: `"Doctors Farms Website" <${MAIL_FROM}>`,
         to: CONTACT_EMAIL,
@@ -246,15 +248,40 @@ router.post('/booking-inquiry', async (req, res) => {
         text: adminMail.text,
         html: adminMail.html,
       }, mailConfig }),
+      sendBookingConfirmationEmail({
+        bookingData: {
+          customerName: bookingData.customerName,
+          email: bookingData.email,
+          phoneNumber: bookingData.phoneNumber,
+          roomType: bookingData.roomType || 'Heritage Cottage',
+          checkInDate: bookingData.checkInDate || '',
+          checkOutDate: bookingData.checkOutDate || '',
+          adults: Number(bookingData.adults || 1),
+          children: Number(bookingData.children || 0),
+          totalPrice: bookingData.totalPrice || 0,
+          paymentStatus: 'pending',
+          bookingStatus: 'received',
+        },
+        inquiryId,
+        mailConfig,
+        overrides: {
+          supportEmail: CONTACT_EMAIL,
+          supportPhone: process.env.SUPPORT_PHONE || '+91 99555 75969',
+        },
+      }),
     ]);
 
     const adminInfo = adminResult.status === 'fulfilled' ? adminResult.value : null;
     const adminFailed = adminResult.status === 'rejected';
+    const userInfo = userResult.status === 'fulfilled' ? userResult.value : null;
+    const userFailed = userResult.status === 'rejected';
 
-    console.log(`📧 [Booking ${inquiryId}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}`);
+    console.log(`📧 [Booking ${inquiryId}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}, User: ${userFailed ? 'FAILED' : 'SUCCESS'}`);
     if (adminFailed) console.error(`   Admin error:`, adminResult.reason instanceof Error ? adminResult.reason.message : adminResult.reason);
+    if (userFailed) console.error(`   User error:`, userResult.reason instanceof Error ? userResult.reason.message : userResult.reason);
 
     const emailStatus = adminFailed ? 'pending' : 'sent';
+    const userEmailStatus = userFailed ? 'failed' : 'sent';
 
     console.log(`📊 [Booking ${inquiryId}] Final email status: ${emailStatus}`);
 
@@ -268,6 +295,8 @@ router.post('/booking-inquiry', async (req, res) => {
         if (idx !== -1) {
           inquiries[idx].emailStatus = emailStatus;
           inquiries[idx].adminMessageId = adminInfo?.messageId || adminInfo?.data?.id || null;
+          inquiries[idx].userConfirmationEmailStatus = userEmailStatus;
+          inquiries[idx].userConfirmationMessageId = userInfo?.messageId || userInfo?.data?.id || null;
           fs.writeFileSync(filePath, JSON.stringify(inquiries, null, 2));
         }
       }
@@ -284,6 +313,7 @@ router.post('/booking-inquiry', async (req, res) => {
       emailStatus,
       emailResults: {
         admin: adminFailed ? 'failed' : 'sent',
+        user: userFailed ? 'failed' : 'sent',
       },
     });
   } catch (error) {

@@ -55,6 +55,14 @@ function buildAdminBookingEmail(bookingData, inquiryId) {
   const guestCount = getGuestCount(bookingData);
   const stayText = bookingData.checkInDate && bookingData.checkOutDate
     ? `${bookingData.checkInDate} to ${bookingData.checkOutDate}`
+  const paymentStatus = String(getFirstValue(bookingData, ['paymentStatus', 'payment_status'], 'pending'));
+  const bookingStatus = String(getFirstValue(bookingData, ['bookingStatus', 'booking_status'], 'received'));
+  const paymentMethod = getFirstValue(bookingData, ['paymentMethod', 'payment_method'], 'Not provided');
+  const paymentReference = getFirstValue(
+    bookingData,
+    ['paymentTransactionId', 'paymentReference', 'transactionId', 'paymentId'],
+    'Not provided'
+  );
     : bookingData.checkInDate || bookingData.stay || 'Not provided';
 
   return {
@@ -90,6 +98,10 @@ function buildUserConfirmationEmail(bookingData, inquiryId, overrides = {}) {
   const adults = Number(getFirstValue(bookingData, ['adults'], 1) || 1);
   const children = Number(getFirstValue(bookingData, ['children'], 0) || 0);
   const totalPrice = bookingData.totalPrice || bookingData.totalCost || bookingData.roomPrice || 0;
+                <tr><td style="padding:10px 0;color:#6b7280;">Booking Status</td><td style="padding:10px 0;font-weight:600;">${escapeHtml(bookingStatus)}</td></tr>
+                <tr><td style="padding:10px 0;color:#6b7280;">Payment Status</td><td style="padding:10px 0;font-weight:600;">${escapeHtml(paymentStatus)}</td></tr>
+                <tr><td style="padding:10px 0;color:#6b7280;">Payment Method</td><td style="padding:10px 0;font-weight:600;">${escapeHtml(paymentMethod)}</td></tr>
+                <tr><td style="padding:10px 0;color:#6b7280;">Payment Reference</td><td style="padding:10px 0;font-weight:600;">${escapeHtml(paymentReference)}</td></tr>
 
   return {
     subject: `Your booking inquiry ${inquiryId} has been received`,

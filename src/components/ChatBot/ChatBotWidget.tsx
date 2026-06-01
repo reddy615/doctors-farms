@@ -155,6 +155,8 @@ export default function ChatBotWidget() {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingFlowStep, setBookingFlowStep] = useState<BookingFlowStep>('idle');
   const [bookingDraft, setBookingDraft] = useState<BookingDraft>({});
+  const [editingSummaryId, setEditingSummaryId] = useState<string | null>(null);
+  const [editingDraft, setEditingDraft] = useState<BookingDraft | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasHydratedRef = useRef(false);
   const hasPrunedExpiredHistoryRef = useRef(false);
@@ -415,6 +417,15 @@ export default function ChatBotWidget() {
       return;
     }
 
+    if (normalizedValue === 'edit') {
+      // enter inline-edit mode for the latest booking-summary message
+      const lastSummary = [...messages].reverse().find((m) => m.actionType === 'booking-summary');
+      if (!lastSummary) return;
+      setEditingSummaryId(lastSummary.id);
+      setEditingDraft(bookingDraft);
+      return;
+    }
+
     if (normalizedValue === 'no') {
       appendBotMessage('No problem. You can choose another booking option or ask me anything else.', [
         { label: 'Book Manually', value: 'book-manually' },
@@ -507,9 +518,28 @@ export default function ChatBotWidget() {
       appendBotMessage(createBookingSummary(nextDraft), [
         { label: 'YES', value: 'yes' },
         { label: 'NO', value: 'no' },
+        { label: 'EDIT', value: 'edit' },
       ], 'booking-summary');
       return;
     }
+  };
+
+  const handleEditChange = (field: keyof BookingDraft, value: any) => {
+    setEditingDraft((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
+  const saveEditedSummary = () => {
+    if (!editingSummaryId || !editingDraft) return;
+    // update the booking draft and replace the summary message text
+    setBookingDraft(editingDraft);
+    setMessages((prev) => prev.map((m) => m.id === editingSummaryId ? { ...m, text: createBookingSummary(editingDraft) } : m));
+    setEditingSummaryId(null);
+    setEditingDraft(null);
+  };
+
+  const cancelEditSummary = () => {
+    setEditingSummaryId(null);
+    setEditingDraft(null);
   };
 
   useEffect(() => {
@@ -760,6 +790,11 @@ export default function ChatBotWidget() {
                     key={msg.id}
                     message={msg}
                     onOptionClick={handleBookingOptionAction}
+                    isEditing={editingSummaryId === msg.id}
+                    editingDraft={editingDraft}
+                    onEditChange={handleEditChange}
+                    onSaveEdit={saveEditedSummary}
+                    onCancelEdit={cancelEditSummary}
                   />
                 ))}
                 {(bookingFlowStep === 'check-in-date' || bookingFlowStep === 'check-out-date') && (

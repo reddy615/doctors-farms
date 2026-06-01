@@ -4,12 +4,21 @@ const crypto = require('crypto');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { z } = require('zod');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
 const { sendAdminNotification } = require('./services/emailService');
+const { sendBookingConfirmationEmail } = require('./services/emailConfirmationService');
+const { appendPaymentEvent } = require('./services/webhookLogger');
+const {
+  applyPaymentWebhookEvent,
+  buildPaymentEventLog,
+  normalizePhonePeCallback,
+} = require('./services/paymentService');
+const { createPaymentWebhookRouter } = require('./routes/paymentWebhook');
 
 dotenv.config({ path: path.join(__dirname, '.env'), override: true });
 
@@ -66,13 +75,21 @@ app.use(
   })
 );
 
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
+
 app.options('*', cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(express.json());
+app.use(express.json({
+  verify(req, res, buf) {
+    req.rawBody = Buffer.from(buf);
+  },
+}));
 
 /* ----------------------------- LOGGING ----------------------------- */
 
@@ -207,6 +224,16 @@ let smtpVerified = false;
 let smtpLastError = null;
 const usingResend = MAIL_PROVIDER === 'resend';
 const resendClient = usingResend && RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+function getMailConfig() {
+  return {
+    usingResend,
+    resendClient,
+    transporter,
+    mailFrom: MAIL_FROM,
+    contactEmail: CONTACT_EMAIL,
+  };
+}
 
 if (!usingResend && SMTP_HOST && SMTP_USER && SMTP_PASS) {
   transporter = nodemailer.createTransport({
@@ -470,6 +497,9 @@ async function submitInquiry(req, res) {
     totalCost: totalCost || roomPrice || 0,
     message,
     status: 'unpaid',
+    bookingStatus: 'received',
+    paymentStatus: 'pending',
+    bookingEvents: [],
     createdAt: new Date().toISOString(),
     payment: null,
   };
@@ -507,15 +537,39 @@ async function submitInquiry(req, res) {
     contactEmail: CONTACT_EMAIL,
   };
 
-  const [adminResult] = await Promise.allSettled([
+  const [adminResult, userResult] = await Promise.allSettled([
     sendAdminNotification({ mail: adminMail, mailConfig }),
+    sendBookingConfirmationEmail({
+      bookingData: {
+        customerName: name,
+        email,
+        phoneNumber: phone || '',
+        roomType: roomType || 'Not selected',
+        checkInDate: checkIn || '',
+        checkOutDate: checkOut || '',
+        adults: Number(parsed.data.adults || 1),
+        children: Number(parsed.data.children || 0),
+        totalPrice: totalCost || roomPrice || 0,
+        paymentStatus: 'pending',
+        bookingStatus: 'received',
+      },
+      inquiryId: inquiry.id,
+      mailConfig,
+      overrides: {
+        supportEmail: CONTACT_EMAIL,
+        supportPhone: process.env.SUPPORT_PHONE || '+91 99555 75969',
+      },
+    }),
   ]);
 
   const adminInfo = adminResult.status === 'fulfilled' ? adminResult.value : null;
   const adminFailed = adminResult.status === 'rejected';
+  const userInfo = userResult.status === 'fulfilled' ? userResult.value : null;
+  const userFailed = userResult.status === 'rejected';
 
-  console.log(`📧 [Inquiry ${inquiry.id}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}`);
+  console.log(`📧 [Inquiry ${inquiry.id}] Email results - Admin: ${adminFailed ? 'FAILED' : 'SUCCESS'}, User: ${userFailed ? 'FAILED' : 'SUCCESS'}`);
   if (adminFailed) console.error(`   Admin error:`, adminResult.reason instanceof Error ? adminResult.reason.message : adminResult.reason);
+  if (userFailed) console.error(`   User error:`, userResult.reason instanceof Error ? userResult.reason.message : userResult.reason);
 
   if (adminFailed) {
     const failure = adminResult.reason;
@@ -523,6 +577,7 @@ async function submitInquiry(req, res) {
   }
 
   const emailStatus = adminFailed ? 'pending' : 'sent';
+  const userEmailStatus = userFailed ? 'failed' : 'sent';
 
   console.log(`📊 [Inquiry ${inquiry.id}] Final email status: ${emailStatus}`);
 
@@ -531,6 +586,8 @@ async function submitInquiry(req, res) {
   if (idx !== -1) {
     updatedInquiries[idx].emailStatus = emailStatus;
     updatedInquiries[idx].adminMessageId = adminInfo?.messageId || adminInfo?.data?.id || null;
+    updatedInquiries[idx].userConfirmationEmailStatus = userEmailStatus;
+    updatedInquiries[idx].userConfirmationMessageId = userInfo?.messageId || userInfo?.data?.id || null;
     writeInquiries(updatedInquiries);
   }
 
@@ -543,6 +600,7 @@ async function submitInquiry(req, res) {
     emailStatus,
     emailResults: {
       admin: adminFailed ? 'failed' : 'sent',
+      user: userFailed ? 'failed' : 'sent',
     },
   });
 }
@@ -638,6 +696,21 @@ app.post('/api/create-payment', async (req, res) => {
       updatedAt: new Date().toISOString(),
     };
     inquiry.status = 'payment_initiated';
+    inquiry.paymentStatus = 'initiated';
+    inquiry.bookingStatus = 'payment_pending';
+    inquiry.bookingEvents = Array.isArray(inquiry.bookingEvents) ? inquiry.bookingEvents : [];
+    inquiry.bookingEvents.push({
+      id: `PAY_EVT_${Date.now()}`,
+      provider: 'phonepe',
+      eventType: 'payment.initiated',
+      status: 'pending',
+      inquiryId: inquiry.id,
+      transactionId: merchantTransactionId,
+      amount,
+      currency: 'INR',
+      source: 'server.create-payment',
+      receivedAt: new Date().toISOString(),
+    });
     writeInquiries(inquiries);
   }
 
@@ -680,36 +753,70 @@ app.post('/api/create-payment', async (req, res) => {
   }
 });
 
-app.post('/api/payment-callback', (req, res) => {
+app.post('/api/payment-callback', async (req, res) => {
   console.log('Payment callback received:', req.body);
 
-  const callbackData = req.body;
-  const transactionId = callbackData.merchantTransactionId || callbackData.paymentId;
+  const callbackData = req.body || {};
+  const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(callbackData);
+  const normalizedEvent = normalizePhonePeCallback(callbackData, rawBody);
+  const transactionId = normalizedEvent.transactionId;
 
   if (!transactionId) {
     return res.status(400).json({ success: false, error: 'Missing transaction identifier' });
   }
 
   const inquiries = readInquiries();
-  const inquiry = inquiries.find((inq) => inq.payment?.merchantTransactionId === transactionId);
+  const result = applyPaymentWebhookEvent(inquiries, normalizedEvent);
 
-  if (!inquiry) {
+  if (!result.found) {
     console.warn('Callback for unknown transaction', transactionId);
     return res.status(404).json({ success: false, error: 'Inquiry not found for transaction' });
   }
 
-  inquiry.status = 'paid';
-  inquiry.payment = {
-    ...inquiry.payment,
-    status: 'paid',
-    callback: callbackData,
-    updatedAt: new Date().toISOString(),
-  };
-
   writeInquiries(inquiries);
+  appendPaymentEvent(buildPaymentEventLog(normalizedEvent, result.inquiry, { source: 'legacy-callback' }));
 
-  res.json({ success: true, message: 'Inquiry marked paid', inquiryId: inquiry.id });
+  if (normalizedEvent.status === 'paid') {
+    try {
+      await sendBookingConfirmationEmail({
+        bookingData: result.bookingData,
+        inquiryId: result.inquiry.id,
+        mailConfig: getMailConfig(),
+        overrides: {
+          supportEmail: CONTACT_EMAIL,
+          supportPhone: process.env.SUPPORT_PHONE || '+91 99555 75969',
+        },
+      });
+
+      result.inquiry.paymentConfirmationStatus = 'sent';
+      result.inquiry.paymentConfirmationSentAt = new Date().toISOString();
+      writeInquiries(inquiries);
+    } catch (emailError) {
+      console.error('Payment confirmation email failed:', emailError instanceof Error ? emailError.message : String(emailError));
+      result.inquiry.paymentConfirmationStatus = 'failed';
+      result.inquiry.paymentConfirmationError = emailError instanceof Error ? emailError.message : String(emailError);
+      writeInquiries(inquiries);
+    }
+  }
+
+  res.json({
+    success: true,
+    message: normalizedEvent.status === 'paid' ? 'Inquiry marked paid' : 'Inquiry payment failure recorded',
+    inquiryId: result.inquiry.id,
+    paymentStatus: normalizedEvent.status,
+  });
 });
+
+const paymentWebhookRouter = createPaymentWebhookRouter({
+  readInquiries,
+  writeInquiries,
+  getMailConfig,
+  configuredProvider: process.env.PAYMENT_PROVIDER || 'auto',
+  contactEmail: CONTACT_EMAIL,
+  supportPhone: process.env.SUPPORT_PHONE || '+91 99555 75969',
+});
+
+app.use('/api', paymentWebhookRouter);
 
 /* ----------------------------- CHATBOT ----------------------------- */
 
