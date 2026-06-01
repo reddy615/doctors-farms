@@ -208,6 +208,7 @@ export default function Admin() {
                   mode="multiple"
                   selectedDates={blockedDates}
                   onChange={handleBlockedDatesChange}
+                  theme="admin"
                 />
               )}
             </div>
