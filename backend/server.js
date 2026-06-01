@@ -14,6 +14,11 @@ const { sendAdminNotification } = require('./services/emailService');
 const { sendBookingConfirmationEmail } = require('./services/emailConfirmationService');
 const { appendPaymentEvent } = require('./services/webhookLogger');
 const {
+  readBlockedDates,
+  writeBlockedDates,
+  hasBlockedDateConflict,
+} = require('./services/blockedDatesService');
+const {
   applyPaymentWebhookEvent,
   buildPaymentEventLog,
   normalizePhonePeCallback,
@@ -160,6 +165,8 @@ app.get('/api/health', (req, res) => {
       'GET /health',
       'GET /api/health',
       'GET /api/health/mail',
+      'GET /api/blocked-dates',
+      'PUT /api/blocked-dates',
       'POST /api/send-mail',
       'POST /api/inquiries',
       'GET /api/inquiries',
@@ -193,6 +200,25 @@ function writeInquiries(inquiries) {
     console.error('Error writing inquiries file:', err);
   }
 }
+
+app.get('/api/blocked-dates', (req, res) => {
+  res.json({ success: true, blockedDates: readBlockedDates() });
+});
+
+app.put('/api/blocked-dates', (req, res) => {
+  try {
+    const requestedDates = Array.isArray(req.body?.blockedDates) ? req.body.blockedDates : [];
+    const blockedDates = writeBlockedDates(requestedDates);
+
+    res.json({ success: true, blockedDates });
+  } catch (error) {
+    console.error('Failed to update blocked dates:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update blocked dates',
+    });
+  }
+});
 
 /* ----------------------------- MAIL CONFIG ----------------------------- */
 
@@ -482,6 +508,14 @@ async function submitInquiry(req, res) {
   }
 
   const { name, email, phone, stay, roomType, pricePerNight, roomPrice, totalCost, message, checkIn, checkOut } = parsed.data;
+
+  if (hasBlockedDateConflict(checkIn, checkOut)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Selected date is blocked',
+      error: 'One or more selected dates are blocked by the admin.',
+    });
+  }
 
   const inquiry = {
     id: `INQ_${Date.now()}_${Math.floor(Math.random() * 100000)}`,

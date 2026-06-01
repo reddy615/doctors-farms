@@ -6,6 +6,7 @@ const { Resend } = require('resend');
 const { handleChatMessage, validateBookingData, saveBookingInquiry } = require('../services/chatService');
 const { sendAdminNotification } = require('../services/emailService');
 const { sendBookingConfirmationEmail } = require('../services/emailConfirmationService');
+const { hasBlockedDateConflict } = require('../services/blockedDatesService');
 
 dotenv.config({ path: path.join(__dirname, '../.env'), override: true });
 
@@ -205,6 +206,13 @@ router.post('/booking-inquiry', async (req, res) => {
       return res.status(400).json({
         error: 'Validation failed',
         details: errors,
+      });
+    }
+
+    if (hasBlockedDateConflict(checkInDate, checkOutDate)) {
+      return res.status(400).json({
+        error: 'Selected date is blocked',
+        details: ['One or more selected dates are blocked by the admin.'],
       });
     }
 

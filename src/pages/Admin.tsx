@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../config/api";
 import AdminLogin from "../components/AdminLogin";
+import DateCalendarPicker from "../components/DateCalendarPicker";
+import { useBlockedDates } from "../hooks/useBlockedDates";
 
 type Inquiry = {
   id: string;
@@ -29,6 +31,7 @@ export default function Admin() {
   const [error, setError] = useState("");
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const { blockedDates, loading: blockedDatesLoading, error: blockedDatesError, saveBlockedDates } = useBlockedDates();
   const normalizeSearchText = (value: unknown) => String(value ?? '').toLowerCase().replace(/[^a-z0-9@._-]/g, '');
   const extractInquiryId = (value: string) => {
     const match = value.match(/inq[_-]?\d+(?:[_-]\d+)?/i);
@@ -76,6 +79,15 @@ export default function Admin() {
     localStorage.removeItem("adminAuth");
     setIsAuthenticated(false);
     navigate("/");
+  };
+
+  const handleBlockedDatesChange = async (dates: string[]) => {
+    try {
+      await saveBlockedDates(dates);
+    } catch (error) {
+      console.error('Failed to update blocked dates', error);
+      setError(error instanceof Error ? error.message : 'Failed to update blocked dates');
+    }
   };
 
   useEffect(() => {
@@ -167,6 +179,42 @@ export default function Admin() {
 
       {!loading && !error && (
         <>
+          <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900">Blocked dates calendar</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Select any dates you want to block. Those dates will be disabled in booking screens.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleBlockedDatesChange([])}
+                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Clear blocked dates
+              </button>
+            </div>
+
+            <div className="mt-4">
+              {blockedDatesLoading ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                  Loading blocked dates...
+                </div>
+              ) : (
+                <DateCalendarPicker
+                  title="Blocked dates"
+                  helperText="Click dates to toggle them on or off."
+                  mode="multiple"
+                  selectedDates={blockedDates}
+                  onChange={handleBlockedDatesChange}
+                />
+              )}
+            </div>
+
+            {blockedDatesError && <p className="mt-3 text-sm text-amber-700">{blockedDatesError}</p>}
+          </div>
+
           <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <label htmlFor="inquiry-search" className="block text-sm font-medium text-slate-700">
               Search inquiries

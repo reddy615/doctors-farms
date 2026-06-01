@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import DateCalendarPicker from '../DateCalendarPicker';
+import { useBlockedDates } from '../../hooks/useBlockedDates';
+import { addDays, toDateKey } from '../../utils/dateHelpers';
 
 interface BookingFormProps {
   onSubmit: (data: BookingData) => void;
@@ -37,6 +40,7 @@ interface BookingFormState {
 }
 
 export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
+  const { blockedDates } = useBlockedDates();
   const [formData, setFormData] = useState<BookingFormState>({
     customerName: '',
     email: '',
@@ -59,6 +63,22 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
     setFormData((prev) => ({
       ...prev,
       [name]: ['adults', 'children'].includes(name) ? parseInt(value) : value,
+    }));
+  };
+
+  const handleCheckInDateChange = (dates: string[]) => {
+    const nextCheckInDate = dates[0] || '';
+    setFormData((prev) => ({
+      ...prev,
+      checkInDate: nextCheckInDate,
+      checkOutDate: prev.checkOutDate && nextCheckInDate && prev.checkOutDate <= nextCheckInDate ? '' : prev.checkOutDate,
+    }));
+  };
+
+  const handleCheckOutDateChange = (dates: string[]) => {
+    setFormData((prev) => ({
+      ...prev,
+      checkOutDate: dates[0] || '',
     }));
   };
 
@@ -163,13 +183,14 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
 
         <div className="form-group">
           <label>Check-in Date *</label>
-          <input
-            type="date"
-            name="checkInDate"
-            value={formData.checkInDate}
-            onChange={handleChange}
-            min={new Date().toISOString().split('T')[0]}
-            required
+          <DateCalendarPicker
+            title="Select your check-in date"
+            helperText="Dates blocked by admin cannot be selected."
+            mode="single"
+            selectedDates={formData.checkInDate ? [formData.checkInDate] : []}
+            disabledDates={blockedDates}
+            minDate={toDateKey(new Date())}
+            onChange={handleCheckInDateChange}
           />
         </div>
 
@@ -200,12 +221,14 @@ export default function BookingForm({ onSubmit, onCancel }: BookingFormProps) {
 
         <div className="form-group">
           <label>Check-out Date *</label>
-          <input
-            type="date"
-            name="checkOutDate"
-            value={formData.checkOutDate}
-            onChange={handleChange}
-            min={formData.checkInDate || new Date().toISOString().split('T')[0]}
+          <DateCalendarPicker
+            title="Select your check-out date"
+            helperText="Choose a date after your check-in date."
+            mode="single"
+            selectedDates={formData.checkOutDate ? [formData.checkOutDate] : []}
+            disabledDates={blockedDates}
+            minDate={formData.checkInDate ? addDays(formData.checkInDate, 1) : toDateKey(new Date())}
+            onChange={handleCheckOutDateChange}
           />
         </div>
 

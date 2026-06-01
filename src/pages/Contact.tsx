@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../config/api";
 import { formatINR, rooms } from "../data/rooms";
+import DateCalendarPicker from "../components/DateCalendarPicker";
+import { useBlockedDates } from "../hooks/useBlockedDates";
+import { addDays, toDateKey } from "../utils/dateHelpers";
 
 const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; name: string; email: string; amount: number }) => {
   const [processing, setProcessing] = useState(false);
@@ -87,6 +90,7 @@ export default function Contact() {
   const [selectedRoomPrice, setSelectedRoomPrice] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
   const [emailResults, setEmailResults] = useState<{ admin?: string; user?: string } | null>(null);
+  const { blockedDates } = useBlockedDates();
 
   useEffect(() => {
     const checkMailHealth = async () => {
@@ -113,6 +117,24 @@ export default function Contact() {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }));
     // clear field-level validation when user edits inputs
+    setValidationError('');
+  };
+
+  const updateCheckInDate = (dates: string[]) => {
+    const nextDate = dates[0] || '';
+    setForm((prev) => ({
+      ...prev,
+      checkInDate: nextDate,
+      checkOutDate: prev.checkOutDate && nextDate && prev.checkOutDate <= nextDate ? '' : prev.checkOutDate,
+    }));
+    setValidationError('');
+  };
+
+  const updateCheckOutDate = (dates: string[]) => {
+    setForm((prev) => ({
+      ...prev,
+      checkOutDate: dates[0] || '',
+    }));
     setValidationError('');
   };
 
@@ -459,14 +481,15 @@ export default function Contact() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">Check-in and Check-out</label>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    <input
-                      name="checkInDate"
-                      type="date"
-                      value={(form as any).checkInDate}
-                      onChange={handleChange}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                      placeholder="Check-in date"
+                  <div className="mt-2 grid gap-3">
+                    <DateCalendarPicker
+                      title="Check-in date"
+                      helperText="Blocked dates are disabled by admin selection."
+                      mode="single"
+                      selectedDates={(form as any).checkInDate ? [(form as any).checkInDate] : []}
+                      disabledDates={blockedDates}
+                      minDate={toDateKey(new Date())}
+                      onChange={updateCheckInDate}
                     />
                     <div className="flex gap-1">
                       <select
@@ -504,14 +527,15 @@ export default function Contact() {
                       </select>
                     </div>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    <input
-                      name="checkOutDate"
-                      type="date"
-                      value={(form as any).checkOutDate}
-                      onChange={handleChange}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                      placeholder="Check-out date"
+                  <div className="mt-2 grid gap-3">
+                    <DateCalendarPicker
+                      title="Check-out date"
+                      helperText="Choose a date after your check-in date."
+                      mode="single"
+                      selectedDates={(form as any).checkOutDate ? [(form as any).checkOutDate] : []}
+                      disabledDates={blockedDates}
+                      minDate={(form as any).checkInDate ? addDays((form as any).checkInDate, 1) : toDateKey(new Date())}
+                      onChange={updateCheckOutDate}
                     />
                     <div className="flex gap-1">
                       <select

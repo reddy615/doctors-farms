@@ -5,6 +5,9 @@ import TypingIndicator from './TypingIndicator';
 import QuickActions from './QuickActions';
 import BookingForm from './BookingForm';
 import { apiFetch } from '../../config/api';
+import DateCalendarPicker from '../DateCalendarPicker';
+import { useBlockedDates } from '../../hooks/useBlockedDates';
+import { addDays, toDateKey } from '../../utils/dateHelpers';
 import './ChatBot.css';
 
 interface Message {
@@ -157,6 +160,7 @@ export default function ChatBotWidget() {
   const [bookingDraft, setBookingDraft] = useState<BookingDraft>({});
   const [editingSummaryId, setEditingSummaryId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState<BookingDraft | null>(null);
+  const { blockedDates } = useBlockedDates();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasHydratedRef = useRef(false);
   const hasPrunedExpiredHistoryRef = useRef(false);
@@ -799,15 +803,14 @@ export default function ChatBotWidget() {
                 ))}
                 {(bookingFlowStep === 'check-in-date' || bookingFlowStep === 'check-out-date') && (
                   <div className="mx-4 mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-                    <p className="mb-3 text-sm font-medium text-emerald-900">
-                      {bookingFlowStep === 'check-in-date' ? 'Choose your check-in date' : 'Choose your check-out date'}
-                    </p>
-                    <input
-                      type="date"
-                      className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-                      min={bookingFlowStep === 'check-out-date' && bookingDraft.checkInDate ? bookingDraft.checkInDate : new Date().toISOString().split('T')[0]}
-                      value={bookingFlowStep === 'check-in-date' ? (bookingDraft.checkInDate || '') : (bookingDraft.checkOutDate || '')}
-                      onChange={(e) => handleCalendarDateSelect(e.target.value)}
+                    <DateCalendarPicker
+                      title={bookingFlowStep === 'check-in-date' ? 'Choose your check-in date' : 'Choose your check-out date'}
+                      helperText="Blocked dates are disabled by admin selection."
+                      mode="single"
+                      selectedDates={bookingFlowStep === 'check-in-date' ? [bookingDraft.checkInDate || ''] : [bookingDraft.checkOutDate || '']}
+                      disabledDates={blockedDates}
+                      minDate={bookingFlowStep === 'check-out-date' && bookingDraft.checkInDate ? addDays(bookingDraft.checkInDate, 1) : toDateKey(new Date())}
+                      onChange={(dates) => handleCalendarDateSelect(dates[0] || '')}
                     />
                     <p className="mt-2 text-xs text-emerald-700">
                       Tap a date to continue the booking flow.
