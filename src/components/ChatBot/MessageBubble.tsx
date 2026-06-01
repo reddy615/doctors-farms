@@ -42,6 +42,8 @@ function renderRichText(text: string) {
 
 export default function MessageBubble({ message, onOptionClick, isEditing, editingDraft, onEditChange, onSaveEdit, onCancelEdit }: MessageBubbleProps) {
   const isUser = message.sender === 'user';
+
+  const fieldClassName = 'message-edit-field';
   
   return (
     <div className={`message-bubble ${isUser ? 'user' : 'bot'}`}>
@@ -64,17 +66,38 @@ export default function MessageBubble({ message, onOptionClick, isEditing, editi
       )}
       {/* Inline edit UI for booking summary when requested */}
       {!isUser && message.actionType === 'booking-summary' && isEditing && editingDraft ? (
-        <div className="message-edit-inline" style={{ padding: 8, borderTop: '1px solid #eee' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <input placeholder="Name" value={editingDraft.customerName || ''} onChange={(e) => onEditChange?.('customerName', e.target.value)} />
-            <input placeholder="Phone" value={editingDraft.phoneNumber || ''} onChange={(e) => onEditChange?.('phoneNumber', e.target.value)} />
-            <input placeholder="Email" value={editingDraft.email || ''} onChange={(e) => onEditChange?.('email', e.target.value)} />
-            <input type="date" placeholder="Check-in" value={editingDraft.checkInDate || ''} onChange={(e) => onEditChange?.('checkInDate', e.target.value)} />
-            <input type="date" placeholder="Check-out" value={editingDraft.checkOutDate || ''} onChange={(e) => onEditChange?.('checkOutDate', e.target.value)} />
-            <input placeholder="Adults" value={((editingDraft.adults ?? 1)).toString()} onChange={(e) => onEditChange?.('adults', Number(e.target.value))} />
-            <input placeholder="Children" value={((editingDraft.children ?? 0)).toString()} onChange={(e) => onEditChange?.('children', Number(e.target.value))} />
+        <div className="message-edit-inline">
+          <div className="message-edit-grid">
+            <label className={fieldClassName}>
+              <span>Name :</span>
+              <input value={editingDraft.customerName || ''} onChange={(e) => onEditChange?.('customerName', e.target.value)} />
+            </label>
+            <label className={fieldClassName}>
+              <span>Phone :</span>
+              <input value={editingDraft.phoneNumber || ''} onChange={(e) => onEditChange?.('phoneNumber', e.target.value)} />
+            </label>
+            <label className={fieldClassName}>
+              <span>Email :</span>
+              <input value={editingDraft.email || ''} onChange={(e) => onEditChange?.('email', e.target.value)} />
+            </label>
+            <label className={fieldClassName}>
+              <span>Check-in :</span>
+              <input type="date" value={editingDraft.checkInDate || ''} onChange={(e) => onEditChange?.('checkInDate', e.target.value)} />
+            </label>
+            <label className={fieldClassName}>
+              <span>Check-out :</span>
+              <input type="date" value={editingDraft.checkOutDate || ''} onChange={(e) => onEditChange?.('checkOutDate', e.target.value)} />
+            </label>
+            <label className={fieldClassName}>
+              <span>Adults :</span>
+              <input value={((editingDraft.adults ?? 1)).toString()} onChange={(e) => onEditChange?.('adults', Number(e.target.value))} />
+            </label>
+            <label className={fieldClassName}>
+              <span>Children :</span>
+              <input value={((editingDraft.children ?? 0)).toString()} onChange={(e) => onEditChange?.('children', Number(e.target.value))} />
+            </label>
           </div>
-          <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+          <div className="message-edit-actions">
             <button type="button" className="message-option-btn" onClick={() => onSaveEdit?.()}>Save</button>
             <button type="button" className="message-option-btn" onClick={() => onCancelEdit?.()}>Cancel</button>
           </div>

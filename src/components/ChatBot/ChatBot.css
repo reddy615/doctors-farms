@@ -460,6 +460,52 @@
   box-shadow: 0 2px 8px rgba(31, 126, 79, 0.3);
 }
 
+/* Inline edit summary */
+.message-edit-inline {
+  margin-top: 8px;
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 0 0 14px 14px;
+}
+
+.message-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.message-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.message-edit-field input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+}
+
+.message-edit-field input:focus {
+  outline: none;
+  border-color: #1f7e4f;
+  box-shadow: 0 0 0 2px rgba(31, 126, 79, 0.1);
+}
+
+.message-edit-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
 /* Input Area */
 .chatbot-input-area {
   display: flex;
