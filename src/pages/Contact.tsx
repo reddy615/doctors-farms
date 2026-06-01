@@ -4,7 +4,7 @@ import { apiFetch } from "../config/api";
 import { formatINR, rooms } from "../data/rooms";
 import DateCalendarPicker from "../components/DateCalendarPicker";
 import { useBlockedDates } from "../hooks/useBlockedDates";
-import { addDays, toDateKey } from "../utils/dateHelpers";
+import { toDateKey } from "../utils/dateHelpers";
 
 const PaymentForm = ({ inquiryId, name, email, amount }: { inquiryId: string; name: string; email: string; amount: number }) => {
   const [processing, setProcessing] = useState(false);
@@ -125,7 +125,7 @@ export default function Contact() {
     setForm((prev) => ({
       ...prev,
       checkInDate: nextDate,
-      checkOutDate: prev.checkOutDate && nextDate && prev.checkOutDate <= nextDate ? '' : prev.checkOutDate,
+      checkOutDate: prev.checkOutDate && nextDate && prev.checkOutDate < nextDate ? '' : prev.checkOutDate,
     }));
     setValidationError('');
   };
@@ -534,7 +534,7 @@ export default function Contact() {
                       mode="single"
                       selectedDates={(form as any).checkOutDate ? [(form as any).checkOutDate] : []}
                       disabledDates={blockedDates}
-                      minDate={(form as any).checkInDate ? addDays((form as any).checkInDate, 1) : toDateKey(new Date())}
+                      minDate={(form as any).checkInDate || toDateKey(new Date())}
                       onChange={updateCheckOutDate}
                     />
                     <div className="flex gap-1">

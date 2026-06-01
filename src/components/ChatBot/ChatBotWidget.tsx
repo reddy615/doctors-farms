@@ -7,7 +7,7 @@ import BookingForm from './BookingForm';
 import { apiFetch } from '../../config/api';
 import DateCalendarPicker from '../DateCalendarPicker';
 import { useBlockedDates } from '../../hooks/useBlockedDates';
-import { addDays, toDateKey } from '../../utils/dateHelpers';
+import { toDateKey } from '../../utils/dateHelpers';
 import './ChatBot.css';
 
 interface Message {
@@ -809,7 +809,7 @@ export default function ChatBotWidget() {
                       mode="single"
                       selectedDates={bookingFlowStep === 'check-in-date' ? [bookingDraft.checkInDate || ''] : [bookingDraft.checkOutDate || '']}
                       disabledDates={blockedDates}
-                      minDate={bookingFlowStep === 'check-out-date' && bookingDraft.checkInDate ? addDays(bookingDraft.checkInDate, 1) : toDateKey(new Date())}
+                      minDate={bookingFlowStep === 'check-out-date' && bookingDraft.checkInDate ? bookingDraft.checkInDate : toDateKey(new Date())}
                       onChange={(dates) => handleCalendarDateSelect(dates[0] || '')}
                     />
                     <p className="mt-2 text-xs text-emerald-700">
