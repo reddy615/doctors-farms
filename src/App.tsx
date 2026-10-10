@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import WhatsAppButton from "./components/WhatsAppButton";
+import PromotionalPopup from "./components/PromotionalPopup";
 import { ChatBotWidget } from "./components/ChatBot";
 import Home from "./pages/Home";
 import Rooms from "./pages/Rooms";
@@ -38,6 +39,7 @@ export default function App() {
       <Footer />
       <WhatsAppButton />
       <ChatBotWidget />
+      <PromotionalPopup />
     </div>
   );
 }
