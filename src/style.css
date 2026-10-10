@@ -60,7 +60,7 @@
   display: block;
   width: auto;
   height: auto;
-  max-width: min(92vw, 900px);
+  max-width: min(calc(100vw - 5rem), 900px);
   max-height: 88vh;
   object-fit: contain;
 }
@@ -68,7 +68,7 @@
 .promotional-popup__close {
   position: absolute;
   top: 0.5rem;
-  right: 0.5rem;
+  right: -3rem;
   z-index: 1;
   display: grid;
   width: 2.5rem;
